@@ -1,0 +1,47 @@
+# Dados (grandes e pertencem às instituições; ver README para aquisição)
+data/raw/
+data/interim/
+data/processed/
+*.xlsx
+*.xls
+*.csv
+*.parquet
+*.pkl
+*.shp
+*.gpkg
+*.geojson
+*.nc
+
+# Manter as pastas no Git sem o conteúdo
+!data/**/.gitkeep
+
+# Ambientes virtuais
+.venv/
+venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Resultados pesados (guardar apenas tabelas e figuras finais em results/)
+models/
+*.joblib
+*.pt
+
+# Segredos e credenciais (chaves de APIs, tokens)
+.env
+*.key
+
+# Lixo do macOS e do editor
+.DS_Store
+._*
+__MACOSX/
+.vscode/
+.idea/

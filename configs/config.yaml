@@ -1,0 +1,8 @@
+# Parâmetros partilhados por todas as experiências.
+# Os valores de Amin são propostas a confirmar na análise exploratória.
+seed: 42
+study_period:
+  start: 2001-01-01
+  end: 2025-12-31
+amin_main: 10          # hectares
+amin_sensitivity: [5, 50, 100]

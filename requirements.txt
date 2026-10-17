@@ -1,0 +1,16 @@
+# Python 3.12
+# Versões fixadas das bibliotecas já usadas na exploração inicial.
+
+pandas==3.0.2
+numpy==2.4.4
+openpyxl==3.1.5
+scikit-learn==1.8.0
+matplotlib==3.10.8
+seaborn==0.13.2
+PyYAML==6.0.3
+requests==2.33.1
+pyarrow==26.0.0
+
+# A fixar quando forem instaladas e usadas (executar `pip freeze` e copiar a versão):
+# geopandas      # junção espacial com a CAOP e validação por região
+# jupyterlab     # notebooks de EDA
