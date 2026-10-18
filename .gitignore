@@ -1,7 +1,7 @@
 # Dados (grandes e pertencem às instituições; ver README para aquisição)
-data/raw/
-data/interim/
-data/processed/
+data/raw/*
+data/interim/*
+data/processed/*
 *.xlsx
 *.xls
 *.csv
@@ -13,11 +13,13 @@ data/processed/
 *.nc
 
 # Manter as pastas no Git sem o conteúdo
-!data/**/.gitkeep
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+!data/processed/.gitkeep
 
 # Ambientes virtuais
-.venv/
-venv/
+.venv*/
+venv*/
 env/
 
 # Python
