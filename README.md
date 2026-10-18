@@ -103,8 +103,9 @@ pip install -r requirements.txt
 - A hora de referência dos registos é `DataHoraAlerta`; as colunas `Ano`, `Mes`,
   `Dia` e `Hora` do ficheiro original não são usadas por terem 843
   inconsistências com ela.
-- `Amin` principal proposto: **10 ha**, com 5, 50 e 100 ha como análise de
-  sensibilidade (a confirmar na EDA).
+- `Amin` principal: **10 ha**, com 5, 50 e 100 ha como análise de
+  sensibilidade. Justificação na EDA da área ardida
+  (`results/amin_candidates.md` e `results/figures/`).
 
 ## Licença e dados
 

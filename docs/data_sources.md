@@ -89,6 +89,12 @@ não é versionado no Git.
 **Anomalias a tratar na limpeza**
 
 - **`AreaTotal_ha = 0`:** 15 164 registos, cerca de 98% entre 2001 e 2012, todos classificados em `]0 a 1 ha[`, o que contradiz a notação do intervalo. Decisão pendente: manter, excluir ou tratar como "área não apurada".
+- **Áreas residuais e arredondadas:** além dos 15 164 registos com área zero,
+  há 17 595 com `0 < área < 0,001 ha` (10 m²), incluindo valores como 1e-12, que
+  parecem marcadores de "área residual". As áreas estão também muito
+  concentradas em valores redondos (0,01, 0,05, 0,1, 0,5 ha). Não afeta o
+  `Amin` (≥ 5 ha), mas convém não usar a área em escala fina como feature
+  nem como alvo de regressão.
 - **`Hora` ≠ hora de `DataHoraAlerta`:** 843 registos (2008–2018). Usa-se sempre `DataHoraAlerta` e ignoram-se `Ano`, `Mes`, `Dia`, `Hora`.
 - **Nomes de concelho:** 379 grafias para 278 concelhos. Chave de junção: 4 primeiros dígitos de `DTCCFR`.
 - **`Distrito`:** variantes de grafia ("Viana do Castelo" / "Viana Do Castelo" / "BRAGA").
