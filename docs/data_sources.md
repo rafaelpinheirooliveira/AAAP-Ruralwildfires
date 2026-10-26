@@ -116,9 +116,10 @@ não é versionado no Git.
 
 ## 3. Índices de perigo de incêndio diários (CEMS, Copernicus)
 
-> **Rascunho.** Escrito a partir da página oficial do dataset, sem ter ainda
-> descarregado dados. Os pontos marcados **[a confirmar]** dependem de um
-> descarregamento de teste e da documentação técnica.
+> **Rascunho.** Escrito a partir da página oficial do dataset e do guia do
+> utilizador do ECMWF, sem ter ainda descarregado dados. A hora do valor diário
+> está confirmada pelo guia. Os pontos marcados **[a confirmar]** dependem de um
+> descarregamento de teste.
 
 ### Identificação
 
@@ -146,7 +147,7 @@ sistema canadiano, as mesmas sete que existem no ficheiro do ICNF:
 | `DC` | Drought code |
 | `ISI` | Initial spread index |
 | `BUI` | Build-up index |
-| `DSR` | Fire daily severity index **[a confirmar a correspondência]** |
+| `DSR` | Fire daily severity index (transformação exponencial do FWI, segundo o guia) |
 
 ### Cobertura e resolução
 
@@ -161,16 +162,19 @@ sistema canadiano, as mesmas sete que existem no ficheiro do ICNF:
 ### Aquisição
 
 Descarregamento a partir do portal, com pedido por variável, período e
-caixa geográfica (Portugal continental). O acesso exige registo no portal
-**[a confirmar]**. A chave de API fica no ficheiro `.env`, que não é
+caixa geográfica (Portugal continental). O guia indica que o utilizador tem de estar registado; o pedido faz-se
+no formulário web (índice, período, tipo de dados) ou, para pedidos grandes,
+pela API (`cdsapi`). O exemplo do guia usa `product_type: reanalysis`,
+`dataset_type: consolidated_dataset` e `system_version: 4_1`; os nomes exatos
+confirmam-se no formulário **[a confirmar]**. A chave de API fica no ficheiro `.env`, que não é
 versionado. O script de descarregamento será acrescentado a `src/`.
 
 ### Hora de disponibilidade
 
 | Pergunta | Estado |
 |---|---|
-| A que hora do dia corresponde o valor diário? | **[a confirmar]**. A documentação de outro dataset do Copernicus (projeções climáticas) descreve o FWI com valores ao meio-dia; não está confirmado para este dataset |
-| Valor do dia d−1 disponível às 23:59 de d−1? | Sim, **se** o valor corresponder ao meio-dia de d−1 |
+| A que hora do dia corresponde o valor diário? | **Ao meio-dia local.** O guia descreve uma interpolação temporal para obter um instantâneo às 12:00 locais em cada ponto |
+| Valor do dia d−1 disponível às 23:59 de d−1? | Sim: refere-se ao meio-dia de d−1, anterior às 23:59 |
 | Valor do dia d disponível às 23:59 de d−1? | **Não.** Só existiria como previsão, e este dataset não é uma previsão |
 
 Consequência para os conjuntos de features:
@@ -178,7 +182,7 @@ Consequência para os conjuntos de features:
 | Tarefa | Uso permitido | Uso proibido |
 |---|---|---|
 | 1 e 2 | Índices dos dias d−1, d−2, … e agregados desses dias (máximos e médias de 3 e 7 dias) | Índices do dia d |
-| 3 | A definir depois de confirmar a hora do valor diário face à hora do alerta | Índices posteriores ao alerta |
+| 3 | Índices do dia anterior ao alerta; o índice do próprio dia só se o alerta for depois do meio-dia (regra conservadora: usar sempre o do dia anterior) | Índice do dia do alerta para alertas antes do meio-dia; índices posteriores |
 
 O índice do dia d só será usado numa experiência à parte, identificada como
 "previsão perfeita" (limite superior do desempenho), nunca como resultado
@@ -197,7 +201,12 @@ principal.
 - **Sem previsões históricas.** Não foi encontrado um arquivo gratuito de
   previsões meteorológicas para o dia seguinte, por isso o Momento A só pode
   usar valores observados (reanalisados) até d−1.
+- **O FWI mede condições meteorológicas, não ignições.** O guia refere que o
+  índice não considera as fontes de ignição, e a descrição do dataset (Vitolo et
+  al., 2020) enquadra-o como condições em que um fogo se propaga, condicionado
+  à existência de ignição. É coerente com a Tarefa 3, mas limita a Tarefa 1.
 - **Diferença face ao FWI do ICNF.** As colunas `FWI`, `DSR`, etc. do ficheiro
   do ICNF podem ter sido calculadas por outro método e a hora de cálculo é
-  desconhecida **[a confirmar]**. Não se misturam as duas fontes no mesmo
+  desconhecida **[a confirmar]**; o sistema canadiano usa o meio-dia, o que sugere
+  a mesma convenção. Não se misturam as duas fontes no mesmo
   modelo. Nos dias com fogo comparam-se as duas (correlação), como validação.

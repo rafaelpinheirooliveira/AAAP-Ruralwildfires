@@ -44,7 +44,7 @@ A área ardida final só é usada para construir o alvo, nunca como feature.
 - [x] Metodologia experimental preliminar (`docs/experimental_methodology.md`)
 - [x] Documentação das fontes: ICNF e CEMS (rascunho)
 - [ ] Documentação da CAOP (limites administrativos)
-- [ ] Revisão de literatura
+- [ ] Revisão de literatura: rascunho em `docs/literature_review.md`; falta ler os artigos
 
 **Para o Milestone 2:** descarregar e integrar a meteorologia (CEMS), confirmar a
 hora do valor diário, treinar os modelos e executar os protocolos de avaliação.
@@ -91,6 +91,7 @@ Descrição das colunas e auditoria da disponibilidade temporal das features:
 | `tasks_and_targets.md` | Tarefas 1 a 3, alvos e prevalências |
 | `feature_inventory.md` | Features, hora de disponibilidade e riscos de leakage |
 | `experimental_methodology.md` | Protocolos de avaliação, modelos, métricas e experiências |
+| `literature_review.md` | Revisão de literatura e contextualização (rascunho) |
 | `icnf_fire_desc_pt.md` | Dicionário de dados (fornecido pelo professor) |
 | `auditoria_disponibilidade_features_sgif_pt.md` | Auditoria da disponibilidade (fornecida pelo professor) |
 

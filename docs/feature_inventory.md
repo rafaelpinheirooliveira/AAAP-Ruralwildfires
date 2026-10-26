@@ -46,9 +46,9 @@ ocorrências sem `DataHora_Extincao` contam para a contagem, mas não para a ár
 
 | Feature | Fonte | Disponível em | Estado |
 |---|---|---|---|
-| Índices de perigo (`FWI`, `FFMC`, `DMC`, `DC`, `ISI`, `BUI`, `DSR`) dos dias d−1, d−2, … | CEMS (ERA5) | Se o valor diário for o do meio-dia, o de d−1 existe às 23:59 de d−1 **[a confirmar]** | Planeada |
+| Índices de perigo (`FWI`, `FFMC`, `DMC`, `DC`, `ISI`, `BUI`, `DSR`) dos dias d−1, d−2, … | CEMS (ERA5) | O valor diário é o do meio-dia local; o de d−1 refere-se a um instante anterior às 23:59 de d−1 | Planeada |
 | Agregados desses índices (máximo e média em 3 e 7 dias) | CEMS | Idem | Planeada |
-| Índices do **dia d** | CEMS | **Não.** Só existiriam como previsão | Excluída do conjunto principal; só como experiência "previsão perfeita" (limite superior) |
+| Índices do **dia d** | CEMS | **Não.** O valor é do meio-dia de d, posterior às 23:59 de d−1; só existiria como previsão | Excluída do conjunto principal; só como experiência "previsão perfeita" (limite superior) |
 | Características estáticas do concelho (área, ocupação do solo) | CAOP e outras | Estáticas, mas a validade temporal tem de ser justificada | Planeada, opcional |
 
 ### Excluídas
@@ -76,7 +76,7 @@ ocorrências sem `DataHora_Extincao` contam para a contagem, mas não para a ár
 |---|---|---|
 | `pend_fonte_alerta` | Cobertura 100% até 2023, cai para ~78% em 2025: deriva temporal | Ablação |
 | `pend_rnap`, `pend_rnmpf` | 96,6% e 97,7% vazias; vazio pode ser "não aplicável" ou "não registado" | Ablação |
-| `pend_fwi`, `pend_dsr`, `pend_isi`, `pend_dc`, `pend_dmc`, `pend_ffmc`, `pend_bui` | Hora de cálculo desconhecida: se for ao meio-dia, um alerta da manhã ainda não os tinha **[a confirmar]** | Fora até confirmar; depois comparar com o CEMS |
+| `pend_fwi`, `pend_dsr`, `pend_isi`, `pend_dc`, `pend_dmc`, `pend_ffmc`, `pend_bui` | Hora de cálculo desconhecida. O sistema canadiano usa o meio-dia, por isso um alerta da manhã provavelmente ainda não os tinha **[a confirmar]** | Fora até confirmar; depois comparar com o CEMS |
 
 ### Excluídas (informação posterior ao alerta)
 
@@ -115,9 +115,21 @@ ocorrências sem `DataHora_Extincao` contam para a contagem, mas não para a ár
 | 11 | Primeiros dias com histórico incompleto | `flag_warmup` (30 dias) |
 | 12 | Indicadores de "valor em falta" a revelar o ano | Não se usam sem análise, porque podem induzir *dataset shift* |
 
+## Regra para a Tarefa 3 (CEMS)
+
+O índice do CEMS é um instantâneo do meio-dia local. Para uma ocorrência com
+alerta no dia d:
+
+- alerta **antes do meio-dia**: só o índice de d−1 estava disponível;
+- alerta **depois do meio-dia**: o índice de d poderia estar disponível, mas com
+  atraso de cálculo incerto.
+
+Proposta conservadora: usar **sempre o índice de d−1** na Tarefa 3, e testar o
+de d (apenas para alertas da tarde) como ablação.
+
 ## Por fechar
 
-- Hora do valor diário do CEMS (afeta os índices desfasados e a Tarefa 3).
+- Confirmação no descarregamento de teste dos nomes dos pedidos e da grelha do CEMS.
 - Hora de cálculo do FWI do ficheiro do ICNF.
 - Integração da CAOP e de variáveis estáticas.
 - Lista final de ablações (ver metodologia experimental).
