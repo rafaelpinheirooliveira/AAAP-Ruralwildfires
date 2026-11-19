@@ -3,14 +3,14 @@
 Cada fonte é documentada com: instituição, descrição, cobertura temporal e
 espacial, resolução, método de aquisição e limitações.
 
-Estado: **1 fonte documentada e 1 em rascunho** (a restante é acrescentada
-à medida que for analisada).
+Estado: **ICNF e CAOP verificados; CEMS documentado, mas o pedido ainda não foi
+validado com um ficheiro real**.
 
 | # | Fonte | Estado |
 |---|---|---|
 | 1 | Registos de incêndios rurais SGIF (ICNF) | Documentada |
-| 2 | Limites administrativos (CAOP, DGT) | A documentar |
-| 3 | Índices de perigo de incêndio diários (CEMS, Copernicus) | Rascunho; pontos por confirmar assinalados |
+| 2 | Limites administrativos (CAOP, DGT) | Documentada e obtida; ficheiros fora do Git |
+| 3 | Índices de perigo de incêndio diários (CEMS, Copernicus) | Pedido documentado; teste de descarregamento pendente |
 
 ---
 
@@ -114,12 +114,80 @@ não é versionado no Git.
 
 ---
 
+## 2. Limites administrativos (CAOP, DGT)
+
+### Identificação
+
+| Campo | Valor |
+|---|---|
+| Instituição responsável | Direção-Geral do Território (DGT) |
+| Dataset | Carta Administrativa Oficial de Portugal (CAOP) |
+| Versão | **CAOP2025**, aprovada por despacho de 28 de janeiro de 2026 e publicada no Aviso n.º 3502/2026/2, de 18 de fevereiro de 2026 |
+| Alterações incluídas | Alterações administrativas publicadas entre 16 de março e 31 de dezembro de 2025 |
+| Documentação oficial | [Página CAOP da DGT](https://www.dgterritorio.gov.pt/atividades/cartografia/cartografia-tematica/caop), [metadados](https://snig.dgterritorio.gov.pt/catalogo/srv/por/catalog.search#/metadata/198497815bf647ecaa990c34c42e932e) e [lista de alterações CAOP2025](https://www.dgterritorio.gov.pt/sites/default/files/ficheiros-cartografia/alteracoes_CAOP2025.pdf) |
+| Licença | CC-BY 4.0 para informação geográfica aberta da DGT; atribuir os dados à Direção-Geral do Território |
+
+### Descrição
+
+Delimitação administrativa oficial de Portugal. A versão CAOP2025 disponibiliza
+separadamente os dados do continente, Açores e Madeira. Para este projeto usa-se
+apenas o GeoPackage do continente, que contém geometrias vetoriais das unidades
+administrativas; a CAOP tem também informação associada sobre áreas e perímetros.
+
+### Cobertura e resolução
+
+| Dimensão | Valor |
+|---|---|
+| Cobertura espacial | Portugal: continente, Açores e Madeira (o projeto usa só o continente) |
+| Sistema de referência (continente) | PT-TM06 / ETRS89 (EPSG:3763), confirmado nas camadas do GeoPackage |
+| Formato de descarga | GeoPackage, dentro de um ZIP |
+| Atualização | Versões anuais; CAOP2025 era a versão mais recente publicada pela DGT em 19 de novembro de 2026 |
+
+### Uso no projeto
+
+| Uso | Detalhe |
+|---|---|
+| Confirmar a lista de concelhos | A camada `cont_municipios` tem 278 linhas e 278 códigos `dtmn` distintos, correspondentes aos 278 códigos de concelho do ICNF |
+| Agregar o CEMS aos concelhos | A grelha do CEMS tem cerca de 25 km; com os polígonos calcula-se o valor de cada concelho (média ponderada pela área), depois de reprojetar para um sistema comum |
+| Característica estática | Área do concelho como feature opcional |
+| Avaliação espacial | Vizinhança entre concelhos e distritos, para definir macro-regiões na análise de sensibilidade da RQ4 |
+| Ligação ao ICNF | Usar `dtmn` na camada `cont_municipios`; os 278 códigos correspondem aos quatro primeiros dígitos de `DTCCFR` |
+
+A camada municipal inclui ainda `municipio`, `distrito_ilha`, `area_ha`,
+`perimetro_km` e `n_freguesias`. Não há códigos repetidos nem áreas em falta
+ou não positivas nessa camada.
+
+### Aquisição
+
+Os ficheiros fornecidos para este projeto foram copiados para `data/raw/caop/`
+(fora do Git): `CAOP_Continente_2025-gpkg.zip` e
+`Areas_Freg_Mun_Dist_Pais_CAOP2025.zip`. Para reproduzir o projeto, descarregá-los
+na [página oficial da CAOP](https://www.dgterritorio.gov.pt/atividades/cartografia/cartografia-tematica/caop).
+A página também disponibiliza os GeoPackages dos Açores e da Madeira, os
+metadados e tabelas de áreas. O GeoPackage foi inspecionado sem alterar os
+ficheiros de origem.
+
+### Limitações
+
+- **Versão atual contra período 2001–2025.** A CAOP2025 representa os limites
+  administrativos publicados até ao fim de 2025, não reconstitui os limites de
+  cada ano do estudo. A divisão de freguesias mudou, nomeadamente em 2013; não
+  se deve ligar por freguesia sem harmonização histórica.
+- **Os nomes de freguesias do ICNF** refletem a divisão do ano do registo (como
+  diz o dicionário), por isso o projeto liga-se pelo concelho, não pela
+  freguesia.
+- **Fronteira costeira e de rio.** Os polígonos seguem a linha de costa
+  oficial; pontos de ignição perto do litoral ou de fronteiras podem não ficar
+  dentro de um polígono municipal após a junção espacial.
+- **Ilhas excluídas.** O ficheiro do ICNF só cobre o continente.
+
+---
+
 ## 3. Índices de perigo de incêndio diários (CEMS, Copernicus)
 
-> **Rascunho.** Escrito a partir da página oficial do dataset e do guia do
-> utilizador do ECMWF, sem ter ainda descarregado dados. A hora do valor diário
-> está confirmada pelo guia. Os pontos marcados **[a confirmar]** dependem de um
-> descarregamento de teste.
+> O pedido está documentado a partir da página e dos metadados oficiais; falta
+> validar a execução e o ficheiro com um descarregamento de teste. A hora do
+> valor diário está confirmada pelo guia do utilizador do ECMWF.
 
 ### Identificação
 
@@ -129,7 +197,7 @@ não é versionado no Git.
 | Dataset | *Fire danger indices historical data from the Copernicus Emergency Management Service* (`cems-fire-historical-v1`) |
 | Portal | CEMS Early Warning Data Store: https://ewds.climate.copernicus.eu/datasets/cems-fire-historical-v1 |
 | DOI | 10.24381/cds.0e89c522 |
-| Licença | CC-BY (exige atribuição) |
+| Licença | CC-BY 4.0 (exige atribuição) |
 
 ### Descrição
 
@@ -147,27 +215,41 @@ sistema canadiano, as mesmas sete que existem no ficheiro do ICNF:
 | `DC` | Drought code |
 | `ISI` | Initial spread index |
 | `BUI` | Build-up index |
-| `DSR` | Fire daily severity index (transformação exponencial do FWI, segundo o guia) |
+| `DSR` | Fire daily severity rating (transformação exponencial do FWI, segundo o guia) |
 
 ### Cobertura e resolução
 
 | Dimensão | Valor |
 |---|---|
-| Cobertura temporal | 1940 até ao presente, atualizado diariamente (cobre 2001–2025) |
+| Cobertura temporal | Desde 1940; o catálogo indicava dados até 14 de novembro de 2026 quando consultado (inclui 2001–2025) |
 | Resolução temporal | Diária |
-| Resolução espacial | Grelha regular de 0,25° x 0,25° (cerca de 25 km); a grelha original da reanálise é uma grelha gaussiana reduzida N320 (cerca de 31 km) |
-| Formato | NetCDF (grelha interpolada) e GRIB2 |
+| Resolução espacial | O formulário oferece a grelha original, 0,5° x 0,5° e 0,25° x 0,25° (as duas últimas interpoladas). Usa-se 0,25° (cerca de 25 km); a grelha original da reanálise é uma grelha gaussiana reduzida N320 (cerca de 31 km) |
+| Formato | GRIB ou NetCDF4 (marcado como experimental no formulário) |
 | Tipo de produto | Reanálise (não são observações diretas nem previsões) |
 
 ### Aquisição
 
 Descarregamento a partir do portal, com pedido por variável, período e
-caixa geográfica (Portugal continental). O guia indica que o utilizador tem de estar registado; o pedido faz-se
-no formulário web (índice, período, tipo de dados) ou, para pedidos grandes,
-pela API (`cdsapi`). O exemplo do guia usa `product_type: reanalysis`,
-`dataset_type: consolidated_dataset` e `system_version: 4_1`; os nomes exatos
-confirmam-se no formulário **[a confirmar]**. A chave de API fica no ficheiro `.env`, que não é
-versionado. O script de descarregamento será acrescentado a `src/`.
+caixa geográfica (Portugal continental). O guia indica que o utilizador tem de
+estar registado; o pedido faz-se no formulário web ou pela API (`cdsapi`). Os
+parâmetros e as opções estão publicados nos [metadados da API do dataset](https://ewds.climate.copernicus.eu/api/retrieve/v1/processes/cems-fire-historical-v1).
+O pedido implementado em `src/download_cems.py` usa
+`product_type: reanalysis`, `dataset_type: consolidated_dataset`,
+`system_version: 4_1`, `grid: 0.25/0.25`, `data_format: netcdf` e uma caixa
+envolvente de Portugal continental. Os nomes e parâmetros foram registados a
+partir do código de pedido do portal, mas ainda falta validar a execução e o
+conteúdo do ficheiro NetCDF com um pedido real. `src/inspect_cems.py` permite
+inspecionar dimensões, variáveis, datas e valores em falta.
+
+As credenciais são um token pessoal guardado em `~/.cdsapirc`, fora do
+repositório. É necessário aceitar os termos de uso no portal antes do primeiro
+descarregamento. O script suporta `--test` (agosto de 2017) e `--dry-run`;
+descarrega um ficheiro por ano de 2001 a 2025.
+
+**Aviso do portal consultado em 19 de novembro de 2026:** as atualizações do
+dataset foram suspensas a partir de 16 de novembro de 2026, até nova ordem, por
+ser necessária uma nova configuração do arquivo MARS. O catálogo continuava
+disponível, mas convém descarregar cedo os dados do período de estudo.
 
 ### Hora de disponibilidade
 
@@ -198,9 +280,13 @@ principal.
   variabilidade espacial dos índices e é relevante para a avaliação espacial
   (RQ4). Método de agregação a decidir (célula do centroide ou média
   ponderada pela área, com os limites da CAOP).
-- **Sem previsões históricas.** Não foi encontrado um arquivo gratuito de
-  previsões meteorológicas para o dia seguinte, por isso o Momento A só pode
-  usar valores observados (reanalisados) até d−1.
+- **Previsões históricas.** Segundo a página de acesso aos dados do CEMS-Fire,
+  as previsões de perigo a 10 dias em tempo real obtêm-se apenas pelo EFFIS/GWIS,
+  e o ECMWF guarda uma cópia no arquivo MARS (só produtos com mais de 30 dias).
+  As condições de acesso ao MARS não foram verificadas, por isso o Momento A
+  usa, para já, só valores reanalisados até d−1. As previsões ficam como
+  extensão possível **[a confirmar]**. O dataset sazonal do CEMS não serve:
+  é de longo prazo e não do dia seguinte.
 - **O FWI mede condições meteorológicas, não ignições.** O guia refere que o
   índice não considera as fontes de ignição, e a descrição do dataset (Vitolo et
   al., 2020) enquadra-o como condições em que um fogo se propaga, condicionado

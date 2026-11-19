@@ -1,4 +1,4 @@
-# Python 3.12
+# Testado em Python 3.12; a instalação também foi verificada em Python 3.14.
 # Versões fixadas das bibliotecas já usadas na exploração inicial.
 
 pandas==3.0.2
@@ -10,6 +10,9 @@ seaborn==0.13.2
 PyYAML==6.0.3
 requests==2.33.1
 pyarrow==26.0.0
+cdsapi==0.7.7
+xarray==2026.9.0
+netCDF4==1.7.5.1.post1
 
 # A fixar quando forem instaladas e usadas (executar `pip freeze` e copiar a versão):
 # geopandas      # junção espacial com a CAOP e validação por região

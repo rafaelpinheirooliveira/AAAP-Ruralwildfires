@@ -42,9 +42,8 @@ A área ardida final só é usada para construir o alvo, nunca como feature.
 - [x] Definição das tarefas e dos alvos (`docs/tasks_and_targets.md`)
 - [x] Inventário de features com hora de disponibilidade e riscos de leakage (`docs/feature_inventory.md`)
 - [x] Metodologia experimental preliminar (`docs/experimental_methodology.md`)
-- [x] Documentação das fontes: ICNF e CEMS (rascunho)
-- [ ] Documentação da CAOP (limites administrativos)
-- [ ] Revisão de literatura: rascunho em `docs/literature_review.md`; falta ler os artigos
+- [x] Documentação das fontes: ICNF, CAOP e pedido CEMS
+- [ ] Revisão de literatura: rascunho atualizado; três artigos prioritários revistos, leituras secundárias pendentes
 
 **Para o Milestone 2:** descarregar e integrar a meteorologia (CEMS), confirmar a
 hora do valor diário, treinar os modelos e executar os protocolos de avaliação.
@@ -54,8 +53,8 @@ hora do valor diário, treinar os modelos e executar os protocolos de avaliaçã
 | Fonte | Instituição | Conteúdo | Estado |
 |---|---|---|---|
 | Registos de incêndios SGIF 2001–2025 | ICNF | 497 478 ocorrências, 41 colunas, Portugal continental (278 concelhos), de 2001-01-05 a 2025-12-31 | Obtido |
-| Limites administrativos (CAOP) | DGT | Geometria dos concelhos | A obter |
-| Índices de perigo de incêndio diários (CEMS, ERA5) | Copernicus | FWI e componentes, grelha de 0,25° | Escolhida; por descarregar |
+| Limites administrativos (CAOP2025) | DGT | Geometrias e áreas dos concelhos | Obtida localmente; ficheiros fora do Git |
+| Índices de perigo de incêndio diários (CEMS, ERA5) | Copernicus | FWI e componentes, grelha de 0,25° | Pedido preparado; teste real pendente |
 
 Os dados **não são versionados no Git**. O ficheiro de registos do ICNF foi
 fornecido pelo professor da UC. Para reproduzir o projeto:
@@ -64,6 +63,10 @@ fornecido pelo professor da UC. Para reproduzir o projeto:
    A origem institucional é o
    [ICNF, estatísticas de incêndios rurais](https://www.icnf.pt/florestas/gfr/gfrgestaoinformacao/estatisticas).
 2. Colocá-lo em `data/raw/Combined_Registos_Incendios_SGIF_2001_2025.xlsx`.
+3. Obter o [GeoPackage CAOP2025 do continente](https://geo2.dgterritorio.gov.pt/caop/CAOP_Continente_2025-gpkg.zip)
+   e a tabela de [áreas CAOP2025](https://www.dgterritorio.gov.pt/sites/default/files/ficheiros-cartografia/Areas_Freg_Mun_Dist_Pais_CAOP2025.zip)
+   na [página da DGT](https://www.dgterritorio.gov.pt/atividades/cartografia/cartografia-tematica/caop),
+   e guardá-los em `data/raw/caop/`.
 
 Descrição das colunas e auditoria da disponibilidade temporal das features:
 `docs/` (ver abaixo).
@@ -120,6 +123,16 @@ python src/clean_sgif.py                    # -> data/processed/sgif_clean.parqu
 python src/build_occurrence_dataset.py      # -> data/processed/occurrences.parquet
 python src/build_territory_day_dataset.py   # -> data/processed/territory_day.parquet
 python src/eda_burned_area.py               # -> results/figures/ e results/amin_candidates.md
+```
+
+### Meteorologia (CEMS), a partir do Milestone 2
+
+Requer conta gratuita no portal do Copernicus e as credenciais em `~/.cdsapirc`.
+
+```bash
+python src/download_cems.py --test       # só agosto de 2017
+python src/inspect_cems.py data/raw/cems/cems_fire_2017-08_test.nc
+python src/download_cems.py              # 2001 a 2025, um ficheiro por ano
 ```
 
 ### Resultados de referência
