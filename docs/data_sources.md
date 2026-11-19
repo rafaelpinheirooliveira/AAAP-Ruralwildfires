@@ -3,14 +3,15 @@
 Cada fonte é documentada com: instituição, descrição, cobertura temporal e
 espacial, resolução, método de aquisição e limitações.
 
-Estado: **ICNF e CAOP verificados; CEMS documentado, mas o pedido ainda não foi
-validado com um ficheiro real**.
+Estado: **ICNF e CAOP verificados; o pedido de teste CEMS foi executado e o
+NetCDF aberto. Falta reconciliar a hora indicada no guia com a coordenada
+temporal do ficheiro.**
 
 | # | Fonte | Estado |
 |---|---|---|
 | 1 | Registos de incêndios rurais SGIF (ICNF) | Documentada |
 | 2 | Limites administrativos (CAOP, DGT) | Documentada e obtida; ficheiros fora do Git |
-| 3 | Índices de perigo de incêndio diários (CEMS, Copernicus) | Pedido documentado; teste de descarregamento pendente |
+| 3 | Índices de perigo de incêndio diários (CEMS, Copernicus) | Pedido de teste executado; interpretação da hora pendente |
 
 ---
 
@@ -185,9 +186,9 @@ ficheiros de origem.
 
 ## 3. Índices de perigo de incêndio diários (CEMS, Copernicus)
 
-> O pedido está documentado a partir da página e dos metadados oficiais; falta
-> validar a execução e o ficheiro com um descarregamento de teste. A hora do
-> valor diário está confirmada pelo guia do utilizador do ECMWF.
+> O pedido foi executado com sucesso e o NetCDF de teste foi inspecionado. O
+> guia do ECMWF descreve valores às 12:00 locais, mas a coordenada temporal do
+> ficheiro de teste apresenta 00:00 UTC; é preciso reconciliar esses metadados.
 
 ### Identificação
 
@@ -207,15 +208,15 @@ pela reanálise ERA5 do ECMWF. O dataset inclui os índices dos sistemas
 canadiano (FWI), norte-americano e australiano. Interessam as componentes do
 sistema canadiano, as mesmas sete que existem no ficheiro do ICNF:
 
-| Componente | Nome no dataset |
-|---|---|
-| `FWI` | Fire weather index |
-| `FFMC` | Fine fuel moisture code |
-| `DMC` | Duff moisture code |
-| `DC` | Drought code |
-| `ISI` | Initial spread index |
-| `BUI` | Build-up index |
-| `DSR` | Fire daily severity rating (transformação exponencial do FWI, segundo o guia) |
+| Componente | Nome no pedido | Nome no NetCDF de teste |
+|---|---|---|
+| `FWI` | `fire_weather_index` | `fwinx` |
+| `FFMC` | `fine_fuel_moisture_code` | `ffmcode` |
+| `DMC` | `duff_moisture_code` | `dufmcode` |
+| `DC` | `drought_code` | `drtcode` |
+| `ISI` | `initial_fire_spread_index` | `infsinx` |
+| `BUI` | `build_up_index` | `fbupinx` |
+| `DSR` | `fire_daily_severity_rating` | `fdsrte` |
 
 ### Cobertura e resolução
 
@@ -237,9 +238,21 @@ O pedido implementado em `src/download_cems.py` usa
 `product_type: reanalysis`, `dataset_type: consolidated_dataset`,
 `system_version: 4_1`, `grid: 0.25/0.25`, `data_format: netcdf` e uma caixa
 envolvente de Portugal continental. Os nomes e parâmetros foram registados a
-partir do código de pedido do portal, mas ainda falta validar a execução e o
-conteúdo do ficheiro NetCDF com um pedido real. `src/inspect_cems.py` permite
-inspecionar dimensões, variáveis, datas e valores em falta.
+partir do código de pedido do portal. `src/inspect_cems.py` inspeciona
+dimensões, variáveis, datas e valores em falta.
+
+### Resultado do pedido de teste
+
+O ficheiro `cems_fire_2017-08_test.nc` abriu como NetCDF4 e contém 31 instantes,
+25 latitudes e 19 longitudes. Cada uma das sete variáveis listadas acima tem
+3 038 valores em falta em 14 725 células-tempo. A coordenada `valid_time` vai
+de `2017-08-01 00:00:00` a `2017-08-31 00:00:00`, com unidades
+`seconds since 1970-01-01`; o atributo `long_name` chama-lhe “initial time of
+forecast”. Isto confirma o carimbo temporal guardado no ficheiro, mas não
+esclarece, por si só, se é a hora física a que o índice diário se refere ou
+apenas uma referência do produto. O guia do utilizador indica 12:00 locais;
+esta diferença deve ser resolvida antes de afirmar a disponibilidade exata do
+valor diário.
 
 As credenciais são um token pessoal guardado em `~/.cdsapirc`, fora do
 repositório. É necessário aceitar os termos de uso no portal antes do primeiro
@@ -255,16 +268,16 @@ disponível, mas convém descarregar cedo os dados do período de estudo.
 
 | Pergunta | Estado |
 |---|---|
-| A que hora do dia corresponde o valor diário? | **Ao meio-dia local.** O guia descreve uma interpolação temporal para obter um instantâneo às 12:00 locais em cada ponto |
-| Valor do dia d−1 disponível às 23:59 de d−1? | Sim: refere-se ao meio-dia de d−1, anterior às 23:59 |
+| A que hora do dia corresponde o valor diário? | Pendente: o guia descreve um instantâneo às 12:00 locais; no teste, `valid_time` mostra 00:00 UTC e tem `long_name=initial time of forecast` |
+| Valor do dia d−1 disponível às 23:59 de d−1? | O guia sugere que sim, mas a interpretação da coordenada do NetCDF ainda precisa de confirmação |
 | Valor do dia d disponível às 23:59 de d−1? | **Não.** Só existiria como previsão, e este dataset não é uma previsão |
 
 Consequência para os conjuntos de features:
 
 | Tarefa | Uso permitido | Uso proibido |
 |---|---|---|
-| 1 e 2 | Índices dos dias d−1, d−2, … e agregados desses dias (máximos e médias de 3 e 7 dias) | Índices do dia d |
-| 3 | Índices do dia anterior ao alerta; o índice do próprio dia só se o alerta for depois do meio-dia (regra conservadora: usar sempre o do dia anterior) | Índice do dia do alerta para alertas antes do meio-dia; índices posteriores |
+| 1 e 2 | Índices dos dias d−1, d−2, … e agregados desses dias (máximos e médias de 3 e 7 dias), depois de confirmar a interpretação temporal de d−1 | Índices do dia d |
+| 3 | Índices do dia anterior ao alerta, depois de confirmar a interpretação temporal; regra conservadora: nunca usar o índice do dia do alerta | Índices do próprio dia ou posteriores ao alerta |
 
 O índice do dia d só será usado numa experiência à parte, identificada como
 "previsão perfeita" (limite superior do desempenho), nunca como resultado

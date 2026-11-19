@@ -45,8 +45,9 @@ A área ardida final só é usada para construir o alvo, nunca como feature.
 - [x] Documentação das fontes: ICNF, CAOP e pedido CEMS
 - [ ] Revisão de literatura: rascunho atualizado; três artigos prioritários revistos, leituras secundárias pendentes
 
-**Para o Milestone 2:** descarregar e integrar a meteorologia (CEMS), confirmar a
-hora do valor diário, treinar os modelos e executar os protocolos de avaliação.
+**Para o Milestone 2:** integrar a meteorologia (CEMS), reconciliar a hora do
+valor diário entre o guia e o NetCDF de teste, treinar os modelos e executar os
+protocolos de avaliação.
 
 ## Dados
 
@@ -54,7 +55,7 @@ hora do valor diário, treinar os modelos e executar os protocolos de avaliaçã
 |---|---|---|---|
 | Registos de incêndios SGIF 2001–2025 | ICNF | 497 478 ocorrências, 41 colunas, Portugal continental (278 concelhos), de 2001-01-05 a 2025-12-31 | Obtido |
 | Limites administrativos (CAOP2025) | DGT | Geometrias e áreas dos concelhos | Obtida localmente; ficheiros fora do Git |
-| Índices de perigo de incêndio diários (CEMS, ERA5) | Copernicus | FWI e componentes, grelha de 0,25° | Pedido preparado; teste real pendente |
+| Índices de perigo de incêndio diários (CEMS, ERA5) | Copernicus | FWI e componentes, grelha de 0,25° | NetCDF de teste obtido; hora de referência por reconciliar |
 
 Os dados **não são versionados no Git**. O ficheiro de registos do ICNF foi
 fornecido pelo professor da UC. Para reproduzir o projeto:
