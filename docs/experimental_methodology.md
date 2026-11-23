@@ -202,6 +202,30 @@ baseline de cada linha. Estes resultados fecham a avaliação comparativa de
 referência sem CEMS; não substituem a ablação de features, a análise de
 sensibilidade, o bootstrap em blocos ou a análise de erros.
 
+### Sensibilidade a possíveis duplicados (Tarefa 3)
+
+A marca `flag_possivel_duplicado` assinala 8 378 registos (mesma freguesia e
+mesmo minuto de alerta); 133 são positivos para `A ≥ 10 ha`. Como são possíveis
+duplicados, não se removem da análise principal. Executou-se uma sensibilidade
+que exclui todos os sinalizados, para os quatro protocolos, com baseline de
+prevalência, logística e HistGradientBoosting. Cada registo inclui a indicação
+de exclusão e a contagem removida.
+
+| Protocolo | Prevalência: completo → sem sinalizados | Logística: AP completo → sem sinalizados | HistGradientBoosting: AP completo → sem sinalizados |
+|---|---:|---:|---:|
+| Aleatório | 3,186% → 3,213% | 0,0613 → 0,0615 | 0,1072 → 0,1074 |
+| Temporal | 4,455% → 4,458% | 0,0680 → 0,0682 | 0,1159 → 0,1153 |
+| Espacial | 3,459% → 3,469% | 0,0546 → 0,0547 | 0,0727 → 0,0742 |
+| Espaciotemporal | 4,770% → 4,773% | 0,0627 → 0,0626 | 0,0851 → 0,0879 |
+
+As diferenças médias são pequenas, embora algumas dobras espaciais e
+espaciotemporais do HistGradientBoosting variem mais. A exclusão altera a
+prevalência; por isso a AP é sempre interpretada contra o baseline de cada
+população. Além disso, os grupos de suspeitas não são separados pelas
+divisões principais: a Tarefa 3 aleatória mantém concelho-dia, a espacial
+mantém distrito e as temporais mantêm período. A sensibilidade mede o efeito
+da população sinalizada, não corrige fuga entre divisões.
+
 ## 8. Reprodutibilidade
 
 - Seed global em `configs/config.yaml` (`seed: 42`). Para modelos
@@ -231,7 +255,9 @@ sensibilidade, o bootstrap em blocos ou a análise de erros.
   confirmar; por isso CEMS não é feature principal e qualquer ablação é
   retrospetiva.
 - A divisão aleatória da Tarefa 3 agrupa concelho-dia; a verificação de
-  sensibilidade que exclui possíveis duplicados continua por fazer.
+  sensibilidade excluindo os registos assinalados como possíveis duplicados
+  foi executada nos quatro protocolos, sem os tratar como duplicados
+  confirmados.
 - A avaliação principal sem CEMS está concluída nos quatro protocolos; a
   experiência temporal está resumida no README e os resultados por dobra estão
   no JSONL.

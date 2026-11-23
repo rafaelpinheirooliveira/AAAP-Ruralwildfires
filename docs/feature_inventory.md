@@ -109,7 +109,7 @@ ocorrências sem `DataHora_Extincao` contam para a contagem, mas não para a ár
 | 5 | Causa e primeira intervenção só existem depois | Excluídas |
 | 6 | Deriva da cobertura de `FonteAlerta`, causa e primeira intervenção | Fora do conjunto principal; qualquer uso é uma ablação justificada |
 | 7 | Memorização de regiões (concelho e coordenadas) | Comparar com e sem localização; é essencial na avaliação espacial da RQ4 |
-| 8 | Duplicados possíveis (8 378 registos envolvidos) em lados diferentes da divisão | Marcados em `flag_possivel_duplicado`; a divisão deve ser por grupo ou testada sem eles |
+| 8 | Possíveis duplicados (8 378 registos envolvidos) | Marcados em `flag_possivel_duplicado`. Na Tarefa 3, as divisões existentes agrupam por concelho-dia (aleatória), distrito (espacial) ou ano (temporal), pelo que registos com a mesma freguesia e minuto não atravessam treino/validação/teste. Executa-se também uma sensibilidade excluindo todos os sinalizados; são possíveis duplicados, não duplicados confirmados. |
 | 9 | Normalização e imputação com dados de teste | Transformações dentro de `Pipeline`, ajustadas só ao treino de cada divisão |
 | 10 | Divisão aleatória a misturar períodos e regiões | Comparar com divisões temporal, espacial e espaciotemporal |
 | 11 | Primeiros dias com histórico incompleto | `flag_warmup` (30 dias) |

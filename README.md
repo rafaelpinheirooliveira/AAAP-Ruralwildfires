@@ -46,11 +46,13 @@ A área ardida final só é usada para construir o alvo, nunca como feature.
 - [x] Avaliação exploratória da data diária CEMS contra o FWI do ICNF
 - [x] Scripts de integração espacial e construção de features CEMS até d−1
 - [x] Avaliação reprodutível sem CEMS: modelos temporais, aleatórios, espaciais e espaciotemporais
+- [x] Sensibilidade da Tarefa 3 sem os 8 378 registos marcados como possíveis duplicados
 - [ ] CEMS anual 2001–2025: só 2001 e 2002 obtidos; 2003–2021 sem descarga
       após duas tentativas por ano; 2022–2025 ainda por testar. O ficheiro de
       agosto de 2017 é apenas um teste mensal; falta a integração completa e a
-      ablação meteorológica. Sensibilidades de `Amin`, desbalanceamento e
-      análises de erros/importância também permanecem por fazer.
+      ablação meteorológica.
+- [ ] Sensibilidade de `Amin`, subamostragem, bootstrap em blocos, análises de
+      erros e importância/explicações permanecem por fazer.
 - [ ] Revisão de literatura: rascunho atualizado; três artigos prioritários revistos, leituras secundárias pendentes
 
 **Para o Milestone 2:** concluir a avaliação de referência sem meteorologia
@@ -180,6 +182,8 @@ prevalência, histórico recente quando aplicável, regressão logística e
 HistGradientBoosting; os limiares dos modelos são escolhidos na validação.
 `--resume` retoma execuções interrompidas sem repetir dobras já guardadas.
 Features CEMS só entram quando se escolhe explicitamente um conjunto `*-cems`.
+Para a sensibilidade a possíveis duplicados da Tarefa 3, acrescenta
+`--exclude-possible-duplicates`; os resultados ficam identificados no JSONL.
 
 ### Resultados de referência
 
@@ -236,6 +240,24 @@ prevalência e a composição de cada teste. Isto completa a comparação de
 referência sem CEMS, não as análises de sensibilidade nem a ablação
 meteorológica.
 
+### Sensibilidade a possíveis duplicados (Tarefa 3)
+
+Foram excluídos os 8 378 registos marcados pela regra “mesma freguesia e mesmo
+minuto de alerta”; 133 eram positivos para `A ≥ 10 ha`. São suspeitas, não
+duplicados confirmados. A AP média mudou pouco:
+
+| Protocolo | Prevalência: completo → sem sinalizados | Logística: AP completo → sem sinalizados | HistGradientBoosting: AP completo → sem sinalizados |
+|---|---:|---:|---:|
+| Aleatório | 3,186% → 3,213% | 0,0613 → 0,0615 | 0,1072 → 0,1074 |
+| Temporal | 4,455% → 4,458% | 0,0680 → 0,0682 | 0,1159 → 0,1153 |
+| Espacial | 3,459% → 3,469% | 0,0546 → 0,0547 | 0,0727 → 0,0742 |
+| Espaciotemporal | 4,770% → 4,773% | 0,0627 → 0,0626 | 0,0851 → 0,0879 |
+
+O teste de sensibilidade acrescenta 54 registos ao `results/experiments.jsonl`.
+Os folds espaciais e temporais mantêm os grupos territoriais/temporais; na
+avaliação aleatória da Tarefa 3 os grupos concelho-dia são indivisíveis, pelo
+que suspeitas da mesma freguesia e minuto não atravessam treino/validação/teste.
+
 ## Reprodutibilidade
 
 - Seed global em `configs/config.yaml` (`seed: 42`), registada em cada experiência.
@@ -243,8 +265,9 @@ meteorológica.
   de estudo, âmbito geográfico, tarefa, momento da previsão, `Amin`, conjunto
   de features, protocolo de treino/validação/teste, modelo, hiperparâmetros,
   seed e métricas numa linha de `results/experiments.jsonl`. O ficheiro tem
-  atualmente 198 registos, incluindo os 102 resultados dos modelos aprendidos
-  nas 51 dobras não temporais (17 dobras por tarefa × dois modelos).
+  atualmente 252 registos, incluindo os 102 resultados dos modelos aprendidos
+  nas 51 dobras não temporais e 54 registos de sensibilidade a possíveis
+  duplicados da Tarefa 3.
 
 ## Decisões metodológicas já tomadas
 

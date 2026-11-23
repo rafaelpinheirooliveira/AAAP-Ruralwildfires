@@ -101,7 +101,16 @@ def _municipality_centroids() -> pd.DataFrame:
     )
 
 
-def _load_data(task: int, target: str, features: list[str]) -> tuple[pd.DataFrame, pd.Series]:
+def _load_data(
+    task: int,
+    target: str,
+    features: list[str],
+    exclude_possible_duplicates: bool = False,
+) -> tuple[pd.DataFrame, pd.Series, int]:
+    if exclude_possible_duplicates and task != 3:
+        raise ValueError("A exclusão de possíveis duplicados só se aplica à Tarefa 3.")
+
+    excluded_duplicate_rows = 0
     derived_features = set(CEMS_LAG1) | {
         "feat_centroid_latitude", "feat_centroid_longitude",
     }
@@ -117,12 +126,22 @@ def _load_data(task: int, target: str, features: list[str]) -> tuple[pd.DataFram
             data = data.merge(_municipality_centroids(), on="cod_concelho", how="left", validate="many_to_one")
     else:
         metadata = ["data_hora_alerta", "ano", "feat_cod_distrito", "feat_cod_concelho"]
+        if exclude_possible_duplicates:
+            metadata.append("flag_possivel_duplicado")
         needed = list(dict.fromkeys(metadata + source_features + [target]))
         data = pd.read_parquet(OCCURRENCES, columns=needed)
         data["data_hora_alerta"] = pd.to_datetime(data["data_hora_alerta"])
         data["ano"] = data["data_hora_alerta"].dt.year
         data["feat_cod_distrito"] = data["feat_cod_distrito"].astype(str).str.zfill(2)
         data["feat_cod_concelho"] = data["feat_cod_concelho"].astype(str).str.zfill(4)
+        if exclude_possible_duplicates:
+            duplicate_mask = data["flag_possivel_duplicado"].fillna(False).astype(bool)
+            excluded_duplicate_rows = int(duplicate_mask.sum())
+            data = (
+                data.loc[~duplicate_mask]
+                .drop(columns="flag_possivel_duplicado")
+                .reset_index(drop=True)
+            )
 
     if any(feature in CEMS_LAG1 for feature in features):
         if not CEMS_FEATURES.is_file():
@@ -153,7 +172,7 @@ def _load_data(task: int, target: str, features: list[str]) -> tuple[pd.DataFram
         raise ValueError(f"O alvo {target} não é binário.")
     if not set(features) <= set(data.columns):
         raise ValueError("Há features em falta após carregar e juntar os datasets.")
-    return data, data[target].astype("int8")
+    return data, data[target].astype("int8"), excluded_duplicate_rows
 
 
 def _coordinates_and_groups(task: int, data: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
@@ -398,6 +417,10 @@ def main() -> None:
     parser.add_argument("--amin", type=float, default=10)
     parser.add_argument("--feature-set")
     parser.add_argument("--models", nargs="+", choices=MODELS, default=list(MODELS))
+    parser.add_argument(
+        "--exclude-possible-duplicates", action="store_true",
+        help="sensibilidade da Tarefa 3 sem os registos assinalados como possíveis duplicados",
+    )
     parser.add_argument("--max-folds", type=int, help="limita folds para testes rápidos")
     parser.add_argument(
         "--resume", action="store_true",
@@ -412,9 +435,15 @@ def main() -> None:
         raise SystemExit(f"Amin tem de ser um dos valores configurados: "
                          f"{config['amin_sensitivity']} ou {config['amin_main']}.")
     feature_set = args.feature_set or _feature_set_default(args.task)
+    if args.exclude_possible_duplicates and args.task != 3:
+        raise SystemExit("--exclude-possible-duplicates só se aplica à Tarefa 3.")
     features = _features(args.task, feature_set)
     target = _target(args.task, args.amin)
-    data, y = _load_data(args.task, target, features)
+    data, y, excluded_duplicate_rows = _load_data(
+        args.task, target, features, args.exclude_possible_duplicates
+    )
+    if args.exclude_possible_duplicates:
+        print(f"Excluídos {excluded_duplicate_rows:,} registos assinalados como possíveis duplicados.")
     folds = _splits(args.task, data, y, args.protocol, config["seed"])
     if args.max_folds is not None:
         if args.max_folds < 1:
@@ -442,6 +471,8 @@ def main() -> None:
                     and record.get("target") == target
                     and record.get("protocol") == args.protocol
                     and record.get("feature_set") == feature_set
+                    and record.get("possible_duplicates_excluded", False)
+                    == args.exclude_possible_duplicates
                 ):
                     completed.add((record.get("fold"), record.get("model")))
 
@@ -473,6 +504,8 @@ def main() -> None:
                 "fold": fold_name,
                 "feature_set": feature_set,
                 "features": features,
+                "possible_duplicates_excluded": args.exclude_possible_duplicates,
+                "excluded_possible_duplicate_rows": excluded_duplicate_rows,
                 "model": model,
                 "seed": config["seed"],
                 "train_rows": len(train),
