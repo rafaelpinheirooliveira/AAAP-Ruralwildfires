@@ -131,8 +131,8 @@ está em `docs/feature_inventory.md`.
   com esta fonte. Os 1 269 dias sem nenhuma ocorrência no país concentram-se
   entre novembro e março (só 7 caem entre junho e setembro), o que não sugere
   lacunas de dados. Num concelho isolado, a ausência é a situação normal.
-- **Concelhos.** São os 278 que aparecem nos registos; coincide com o número
-  de concelhos de Portugal continental. Será confirmado com a CAOP.
+- **Concelhos.** Os 278 códigos municipais dos registos correspondem aos 278
+  códigos `dtmn` únicos da camada municipal `cont_municipios` da CAOP2025.
 - **Deriva temporal.** A prevalência de `y_fire` desce de 14,0% (2001–2010) para
   10,7% e 6,1% (2011–2020 e 2021–2025). Esta mudança é relevante para a RQ4.
 - **Alvo em escala grosseira.** Cerca de 17 595 ocorrências têm áreas residuais

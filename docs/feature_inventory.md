@@ -46,9 +46,9 @@ ocorrências sem `DataHora_Extincao` contam para a contagem, mas não para a ár
 
 | Feature | Fonte | Disponível em | Estado |
 |---|---|---|---|
-| Índices de perigo (`FWI`, `FFMC`, `DMC`, `DC`, `ISI`, `BUI`, `DSR`) dos dias d−1, d−2, … | CEMS (ERA5) | O valor diário é o do meio-dia local; o de d−1 refere-se a um instante anterior às 23:59 de d−1 | Planeada |
-| Agregados desses índices (máximo e média em 3 e 7 dias) | CEMS | Idem | Planeada |
-| Índices do **dia d** | CEMS | **Não.** O valor é do meio-dia de d, posterior às 23:59 de d−1; só existiria como previsão | Excluída do conjunto principal; só como experiência "previsão perfeita" (limite superior) |
+| Índices de perigo (`FWI`, `FFMC`, `DMC`, `DC`, `ISI`, `BUI`, `DSR`) dos dias d−1, d−2, … | CEMS (ERA5) | Comparação com o ICNF apoia a mesma data diária (Spearman 0,911 em agosto de 2017), mas não confirma a hora física nem a disponibilidade em tempo real | Pendente; só em ablação retrospetiva, sem alegação operacional |
+| Agregados desses índices (máximo e média em 3 e 7 dias) | CEMS | Usam apenas dias anteriores; sujeitos à mesma incerteza de disponibilidade | Pendente; só em ablação retrospetiva |
+| Índices do **dia d** | CEMS | **Não** para previsão às 23:59 de d−1: a reanálise não é uma previsão disponível antecipadamente | Excluída do conjunto principal; só como experiência "previsão perfeita" (limite superior) |
 | Características estáticas do concelho (área, ocupação do solo) | CAOP e outras | Estáticas, mas a validade temporal tem de ser justificada | Planeada, opcional |
 
 ### Excluídas
@@ -76,7 +76,7 @@ ocorrências sem `DataHora_Extincao` contam para a contagem, mas não para a ár
 |---|---|---|
 | `pend_fonte_alerta` | Cobertura 100% até 2023, cai para ~78% em 2025: deriva temporal | Ablação |
 | `pend_rnap`, `pend_rnmpf` | 96,6% e 97,7% vazias; vazio pode ser "não aplicável" ou "não registado" | Ablação |
-| `pend_fwi`, `pend_dsr`, `pend_isi`, `pend_dc`, `pend_dmc`, `pend_ffmc`, `pend_bui` | Hora de cálculo desconhecida. O sistema canadiano usa o meio-dia, por isso um alerta da manhã provavelmente ainda não os tinha **[a confirmar]** | Fora até confirmar; depois comparar com o CEMS |
+| `pend_fwi`, `pend_dsr`, `pend_isi`, `pend_dc`, `pend_dmc`, `pend_ffmc`, `pend_bui` | Hora de cálculo desconhecida; a indicação horária do guia CEMS não confirma a hora usada pelo ICNF | Fora até confirmar; depois comparar com o CEMS |
 
 ### Excluídas (informação posterior ao alerta)
 
@@ -117,19 +117,23 @@ ocorrências sem `DataHora_Extincao` contam para a contagem, mas não para a ár
 
 ## Regra para a Tarefa 3 (CEMS)
 
-O índice do CEMS é um instantâneo do meio-dia local. Para uma ocorrência com
-alerta no dia d:
+O guia do CEMS descreve o índice como um instantâneo do meio-dia local. Para uma
+ocorrência com alerta no dia d:
 
 - alerta **antes do meio-dia**: só o índice de d−1 estava disponível;
 - alerta **depois do meio-dia**: o índice de d poderia estar disponível, mas com
   atraso de cálculo incerto.
 
-Proposta conservadora: usar **sempre o índice de d−1** na Tarefa 3, e testar o
-de d (apenas para alertas da tarde) como ablação.
+No NetCDF de teste, porém, `valid_time` está marcado às 00:00 UTC e tem
+`long_name=initial time of forecast`. A comparação com o ICNF favorece a mesma
+data de calendário, mas não determina a hora física ou a latência de publicação.
+Assim, CEMS não entra no conjunto principal: pode ser avaliado numa ablação
+retrospetiva usando **sempre os valores até d−1**, sem os apresentar como dados
+operacionalmente disponíveis no instante da previsão.
 
 ## Por fechar
 
-- Confirmação no descarregamento de teste dos nomes dos pedidos e da grelha do CEMS.
+- Confirmação documental da hora física representada por `valid_time` e da latência de disponibilização do produto CEMS.
 - Hora de cálculo do FWI do ficheiro do ICNF.
 - Integração da CAOP e de variáveis estáticas.
 - Lista final de ablações (ver metodologia experimental).

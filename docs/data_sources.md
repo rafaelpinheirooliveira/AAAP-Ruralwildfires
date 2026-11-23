@@ -3,15 +3,18 @@
 Cada fonte é documentada com: instituição, descrição, cobertura temporal e
 espacial, resolução, método de aquisição e limitações.
 
-Estado: **ICNF e CAOP verificados; o pedido de teste CEMS foi executado e o
-NetCDF aberto. Falta reconciliar a hora indicada no guia com a coordenada
-temporal do ficheiro.**
+Estado: **ICNF e CAOP verificados; o teste CEMS foi descarregado, inspecionado
+e agregado à CAOP. Os ficheiros anuais locais cobrem 2001 e 2002. Os pedidos
+de 2003–2021 ficaram em `accepted` após duas tentativas por ano; 2022–2025 ainda
+não foram testados. Uma comparação com o FWI do ICNF apoia a correspondência
+da data diária, mas não confirma a hora física exata nem a disponibilidade
+operacional.**
 
 | # | Fonte | Estado |
 |---|---|---|
 | 1 | Registos de incêndios rurais SGIF (ICNF) | Documentada |
 | 2 | Limites administrativos (CAOP, DGT) | Documentada e obtida; ficheiros fora do Git |
-| 3 | Índices de perigo de incêndio diários (CEMS, Copernicus) | Pedido de teste executado; interpretação da hora pendente |
+| 3 | Índices de perigo de incêndio diários (CEMS, Copernicus) | Teste executado e agregado; data diária avaliada; hora/disponibilidade exatas pendentes |
 
 ---
 
@@ -188,7 +191,9 @@ ficheiros de origem.
 
 > O pedido foi executado com sucesso e o NetCDF de teste foi inspecionado. O
 > guia do ECMWF descreve valores às 12:00 locais, mas a coordenada temporal do
-> ficheiro de teste apresenta 00:00 UTC; é preciso reconciliar esses metadados.
+> ficheiro de teste apresenta 00:00 UTC. Uma comparação diária com o ICNF
+> favorece a mesma data de calendário, sem provar a hora física nem a
+> disponibilidade em tempo real.
 
 ### Identificação
 
@@ -239,7 +244,9 @@ O pedido implementado em `src/download_cems.py` usa
 `system_version: 4_1`, `grid: 0.25/0.25`, `data_format: netcdf` e uma caixa
 envolvente de Portugal continental. Os nomes e parâmetros foram registados a
 partir do código de pedido do portal. `src/inspect_cems.py` inspeciona
-dimensões, variáveis, datas e valores em falta.
+dimensões, variáveis, datas e valores em falta. `src/integrate_cems.py` agrega
+os valores da grelha aos 278 concelhos da CAOP2025, por média ponderada pela
+área de interseção dos polígonos e das células.
 
 ### Resultado do pedido de teste
 
@@ -254,10 +261,37 @@ apenas uma referência do produto. O guia do utilizador indica 12:00 locais;
 esta diferença deve ser resolvida antes de afirmar a disponibilidade exata do
 valor diário.
 
+O teste foi também agregado à CAOP: produziu 8 618 linhas (31 dias × 278
+concelhos), sem valores em falta nas features agregadas. A cobertura espacial
+da grelha foi praticamente 100% em todos os municípios. Os valores ausentes
+nas células do NetCDF não foram tratados como zero: a média é normalizada pela
+área das células com valor disponível.
+
+**Estado dos ficheiros anuais locais (19 de novembro de 2026):** existem
+`cems_fire_2001.nc` e `cems_fire_2002.nc`. Não existem ficheiros anuais de
+2003–2021; cada ano foi tentado duas vezes e os pedidos permaneceram em
+`accepted` após 30 segundos. O pedido de cancelamento foi enviado, mas não
+houve confirmação independente do cancelamento. `cems_fire_2017-08_test.nc`
+é apenas o teste mensal, não substitui o anual. Os anos 2022–2025 ainda não
+foram testados.
+
+Como verificação empírica da data, comparou-se o FWI CEMS municipal com
+`pend_fwi` do ICNF em 2 407 pares concelho-dia com ocorrências em agosto de
+2017. A correlação de Spearman foi 0,911 para a mesma data, 0,821 usando o dia
+anterior e 0,704 usando dois dias antes (Pearson: 0,912, 0,807 e 0,689,
+respetivamente). Isto apoia a correspondência do rótulo diário, mas não é uma
+prova independente da hora do índice: ambas as fontes podem representar
+condições meteorológicas semelhantes. Por prudência, as experiências usarão
+apenas valores CEMS até d−1 e serão identificadas como retrospetivas; não se
+afirma que a reanálise estivesse operacionalmente disponível às 23:59 de d−1.
+
 As credenciais são um token pessoal guardado em `~/.cdsapirc`, fora do
 repositório. É necessário aceitar os termos de uso no portal antes do primeiro
-descarregamento. O script suporta `--test` (agosto de 2017) e `--dry-run`;
-descarrega um ficheiro por ano de 2001 a 2025.
+descarregamento. O script suporta `--test` (agosto de 2017), `--dry-run` e
+`--year`; por defeito, faz duas tentativas por ano e espera 30 segundos por
+pedido antes de pedir o cancelamento e avançar. Descarrega um ficheiro por ano
+de 2001 a 2025. Após a descarga completa, `python src/integrate_cems.py`
+agrega os ficheiros anuais; `--test` processa apenas o mês de teste.
 
 **Aviso do portal consultado em 19 de novembro de 2026:** as atualizações do
 dataset foram suspensas a partir de 16 de novembro de 2026, até nova ordem, por
@@ -268,16 +302,16 @@ disponível, mas convém descarregar cedo os dados do período de estudo.
 
 | Pergunta | Estado |
 |---|---|
-| A que hora do dia corresponde o valor diário? | Pendente: o guia descreve um instantâneo às 12:00 locais; no teste, `valid_time` mostra 00:00 UTC e tem `long_name=initial time of forecast` |
-| Valor do dia d−1 disponível às 23:59 de d−1? | O guia sugere que sim, mas a interpretação da coordenada do NetCDF ainda precisa de confirmação |
+| A que hora do dia corresponde o valor diário? | `valid_time` marca 00:00 UTC e tem `long_name=initial time of forecast`; a comparação ICNF favorece a mesma data, mas a hora física exata continua por confirmar |
+| Valor do dia d−1 disponível às 23:59 de d−1? | Não demonstrado. O dataset é uma reanálise histórica; o carimbo temporal não prova a hora de publicação nem a disponibilidade operacional |
 | Valor do dia d disponível às 23:59 de d−1? | **Não.** Só existiria como previsão, e este dataset não é uma previsão |
 
 Consequência para os conjuntos de features:
 
 | Tarefa | Uso permitido | Uso proibido |
 |---|---|---|
-| 1 e 2 | Índices dos dias d−1, d−2, … e agregados desses dias (máximos e médias de 3 e 7 dias), depois de confirmar a interpretação temporal de d−1 | Índices do dia d |
-| 3 | Índices do dia anterior ao alerta, depois de confirmar a interpretação temporal; regra conservadora: nunca usar o índice do dia do alerta | Índices do próprio dia ou posteriores ao alerta |
+| 1 e 2 | Índices dos dias d−1, d−2, … e agregados desses dias, apenas numa experiência retrospetiva e sem alegação de disponibilidade operacional | Índices do dia d |
+| 3 | Índices até ao dia anterior ao alerta, apenas numa experiência retrospetiva; regra conservadora: nunca usar o índice do dia do alerta | Índices do próprio dia ou posteriores ao alerta |
 
 O índice do dia d só será usado numa experiência à parte, identificada como
 "previsão perfeita" (limite superior do desempenho), nunca como resultado
@@ -291,8 +325,9 @@ principal.
 - **Resolução grosseira.** Cerca de 25 km, face a concelhos frequentemente
   menores. Concelhos vizinhos podem partilhar a mesma célula, o que reduz a
   variabilidade espacial dos índices e é relevante para a avaliação espacial
-  (RQ4). Método de agregação a decidir (célula do centroide ou média
-  ponderada pela área, com os limites da CAOP).
+  (RQ4). A implementação atual calcula a média ponderada pela área de
+  interseção entre as células e os polígonos CAOP; não elimina a limitação de
+  células partilhadas por concelhos vizinhos.
 - **Previsões históricas.** Segundo a página de acesso aos dados do CEMS-Fire,
   as previsões de perigo a 10 dias em tempo real obtêm-se apenas pelo EFFIS/GWIS,
   e o ECMWF guarda uma cópia no arquivo MARS (só produtos com mais de 30 dias).
@@ -306,6 +341,6 @@ principal.
   à existência de ignição. É coerente com a Tarefa 3, mas limita a Tarefa 1.
 - **Diferença face ao FWI do ICNF.** As colunas `FWI`, `DSR`, etc. do ficheiro
   do ICNF podem ter sido calculadas por outro método e a hora de cálculo é
-  desconhecida **[a confirmar]**; o sistema canadiano usa o meio-dia, o que sugere
-  a mesma convenção. Não se misturam as duas fontes no mesmo
-  modelo. Nos dias com fogo comparam-se as duas (correlação), como validação.
+  desconhecida. A correlação alta no mesmo dia é uma verificação de
+  consistência, não prova equivalência das fontes nem da hora de cálculo. Não
+  se misturam as duas fontes no mesmo modelo.

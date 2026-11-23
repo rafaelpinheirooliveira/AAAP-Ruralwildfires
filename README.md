@@ -32,7 +32,7 @@ A área ardida final só é usada para construir o alvo, nunca como feature.
 
 ## Estado atual
 
-**Fase: Milestone 1 (semana 7).**
+**Estado: Milestone 1 concluído; Milestone 2 em curso.**
 
 - [x] Dados de ocorrências do ICNF/SGIF 2001–2025 obtidos e auditados
 - [x] Limpeza dos registos (`src/clean_sgif.py`)
@@ -42,12 +42,22 @@ A área ardida final só é usada para construir o alvo, nunca como feature.
 - [x] Definição das tarefas e dos alvos (`docs/tasks_and_targets.md`)
 - [x] Inventário de features com hora de disponibilidade e riscos de leakage (`docs/feature_inventory.md`)
 - [x] Metodologia experimental preliminar (`docs/experimental_methodology.md`)
-- [x] Documentação das fontes: ICNF, CAOP e pedido CEMS
+- [x] Documentação das fontes: ICNF e CAOP; teste CEMS descarregado, inspecionado e agregado
+- [x] Avaliação exploratória da data diária CEMS contra o FWI do ICNF
+- [x] Scripts de integração espacial e construção de features CEMS até d−1
+- [x] Avaliação reprodutível sem CEMS: modelos temporais, aleatórios, espaciais e espaciotemporais
+- [ ] CEMS anual 2001–2025: só 2001 e 2002 obtidos; 2003–2021 sem descarga
+      após duas tentativas por ano; 2022–2025 ainda por testar. O ficheiro de
+      agosto de 2017 é apenas um teste mensal; falta a integração completa e a
+      ablação meteorológica. Sensibilidades de `Amin`, desbalanceamento e
+      análises de erros/importância também permanecem por fazer.
 - [ ] Revisão de literatura: rascunho atualizado; três artigos prioritários revistos, leituras secundárias pendentes
 
-**Para o Milestone 2:** integrar a meteorologia (CEMS), reconciliar a hora do
-valor diário entre o guia e o NetCDF de teste, treinar os modelos e executar os
-protocolos de avaliação.
+**Para o Milestone 2:** concluir a avaliação de referência sem meteorologia
+(já executada), tentar obter o CEMS e, se possível, acrescentá-lo como ablação
+retrospetiva. A comparação com o ICNF favorece o alinhamento pela mesma data
+de calendário, mas não confirma a hora exata nem a disponibilidade operacional
+da reanálise. O CEMS não é necessário para os resultados aqui apresentados.
 
 ## Dados
 
@@ -55,7 +65,7 @@ protocolos de avaliação.
 |---|---|---|---|
 | Registos de incêndios SGIF 2001–2025 | ICNF | 497 478 ocorrências, 41 colunas, Portugal continental (278 concelhos), de 2001-01-05 a 2025-12-31 | Obtido |
 | Limites administrativos (CAOP2025) | DGT | Geometrias e áreas dos concelhos | Obtida localmente; ficheiros fora do Git |
-| Índices de perigo de incêndio diários (CEMS, ERA5) | Copernicus | FWI e componentes, grelha de 0,25° | NetCDF de teste obtido; hora de referência por reconciliar |
+| Índices de perigo de incêndio diários (CEMS, ERA5) | Copernicus | FWI e componentes, grelha de 0,25° | Teste agregado; anuais de 2001–2002 obtidos; restantes por obter; hora/disponibilidade exatas pendentes |
 
 Os dados **não são versionados no Git**. O ficheiro de registos do ICNF foi
 fornecido pelo professor da UC. Para reproduzir o projeto:
@@ -133,8 +143,43 @@ Requer conta gratuita no portal do Copernicus e as credenciais em `~/.cdsapirc`.
 ```bash
 python src/download_cems.py --test       # só agosto de 2017
 python src/inspect_cems.py data/raw/cems/cems_fire_2017-08_test.nc
+python src/integrate_cems.py --test      # agrega o teste aos concelhos CAOP2025
+python src/attach_cems_features.py --test  # verifica os lags no mês de teste
 python src/download_cems.py              # 2001 a 2025, um ficheiro por ano
+python src/integrate_cems.py             # após concluir a descarga anual
+python src/attach_cems_features.py       # lags e janelas até d-1 para ablações retrospetivas
 ```
+
+O descarregador pode ser limitado a um ano com `--year 2003`. Cada ano tem
+duas tentativas, com espera de 30 segundos por pedido; se continuar apenas
+`accepted`, pede o cancelamento e avança, permitindo retomar sem bloquear nos
+anos seguintes.
+
+O alinhamento no mesmo dia teve correlação de Spearman 0,911 com o FWI do
+ICNF em agosto de 2017, superior aos alinhamentos com um ou dois dias de atraso.
+Isto apoia a data diária, não prova a hora física nem a disponibilidade em
+tempo real. A experiência CEMS usa só dados até d−1 e não sustenta uma alegação
+de previsão operacional.
+
+### Modelação e avaliação
+
+Depois de gerar os datasets de ocorrências e concelho-dia, executar uma tarefa
+e protocolo por comando:
+
+```powershell
+python src/run_experiments.py --task 1 --protocol temporal
+python src/run_experiments.py --task 2 --protocol temporal
+python src/run_experiments.py --task 3 --protocol temporal
+```
+
+Protocolos disponíveis: `random`, `temporal`, `spatial` e `spatiotemporal`.
+`--dry-run` mostra os tamanhos e positivos de cada divisão sem treinar;
+`--max-folds 1` permite testar um fold espacial. Cada execução acrescenta
+métricas e parâmetros a `results/experiments.jsonl`. O pipeline compara
+prevalência, histórico recente quando aplicável, regressão logística e
+HistGradientBoosting; os limiares dos modelos são escolhidos na validação.
+`--resume` retoma execuções interrompidas sem repetir dobras já guardadas.
+Features CEMS só entram quando se escolhe explicitamente um conjunto `*-cems`.
 
 ### Resultados de referência
 
@@ -149,14 +194,57 @@ devem coincidir com estes valores.
 | Ocorrências (Tarefa 3, `Amin` = 10 ha) | 497 477 linhas; 15 851 positivos (3,19%) |
 | Concelho × dia (Tarefas 1 e 2) | 2 538 418 linhas (9 131 dias × 278 concelhos); `y_fire` 281 580 (11,09%); `y_sig_amin10` 13 942 (0,55%) |
 
+### Avaliação temporal (sem CEMS)
+
+Teste temporal fechado: 2021–2025; seleção do modelo e do limiar na validação
+2018–2020. A métrica principal é Average Precision (AP); a prevalência é o AP
+do baseline constante. Estes são resultados iniciais, não substituem as
+avaliações espacial e espaciotemporal nem as análises de sensibilidade.
+
+| Tarefa | Prevalência no teste | Baseline | Histórico | Logística | HistGradientBoosting |
+|---|---:|---:|---:|---:|---:|
+| 1 — ocorrência | 6,07% | 0,0607 | 0,2360 | 0,2865 | **0,3084** |
+| 2 — incêndio ≥10 ha | 0,315% | 0,0031 | 0,0348 | 0,0376 | **0,0701** |
+| 3 — ocorrência ≥10 ha | 4,46% | 0,0446 | — | 0,0680 | **0,1159** |
+
+O CEMS foi deliberadamente excluído: é uma reanálise e a sua disponibilidade
+operacional no instante previsto não foi demonstrada.
+
+### Avaliação não temporal (sem CEMS)
+
+Média da Average Precision (AP) entre os cinco folds aleatórios ou seis folds
+por distrito. Para o baseline constante, a AP é igual à prevalência indicada.
+Cada fold e as métricas complementares estão em `results/experiments.jsonl`.
+
+| Tarefa | Protocolo | Prevalência / AP baseline | Histórico (AP) | Logística (AP) | HistGradientBoosting (AP) |
+|---|---|---:|---:|---:|---:|
+| 1 — ocorrência | Aleatório | 11,09% | 0,4256 | 0,4809 | **0,5127** |
+| 1 — ocorrência | Espacial | 11,33% | 0,3981 | 0,4478 | **0,4799** |
+| 1 — ocorrência | Espaciotemporal | 6,15% | 0,2137 | 0,2581 | **0,2803** |
+| 2 — incêndio ≥10 ha | Aleatório | 0,549% | 0,0465 | 0,0586 | **0,0920** |
+| 2 — incêndio ≥10 ha | Espacial | 0,579% | 0,0498 | 0,0596 | **0,0832** |
+| 2 — incêndio ≥10 ha | Espaciotemporal | 0,333% | 0,0392 | 0,0436 | **0,0660** |
+| 3 — ocorrência ≥10 ha | Aleatório | 3,19% | — | 0,0613 | **0,1072** |
+| 3 — ocorrência ≥10 ha | Espacial | 3,46% | — | 0,0546 | **0,0727** |
+| 3 — ocorrência ≥10 ha | Espaciotemporal | 4,77% | — | 0,0627 | **0,0851** |
+
+Em média, ambos os modelos aprendidos superam o baseline de prevalência em
+todos os protocolos e tarefas; o HistGradientBoosting tem a maior AP média
+nas nove combinações. A dispersão entre folds é importante, sobretudo nos
+protocolos espaciais, e os valores não devem ser comparados sem considerar a
+prevalência e a composição de cada teste. Isto completa a comparação de
+referência sem CEMS, não as análises de sensibilidade nem a ablação
+meteorológica.
+
 ## Reprodutibilidade
 
 - Seed global em `configs/config.yaml` (`seed: 42`), registada em cada experiência.
-- Para cada experiência principal serão registados: versão do dataset, período
+- Cada execução regista: versão do dataset, período
   de estudo, âmbito geográfico, tarefa, momento da previsão, `Amin`, conjunto
   de features, protocolo de treino/validação/teste, modelo, hiperparâmetros,
-  seed e métricas, numa linha de `results/experiments.jsonl` (previsto para o
-  Milestone 2).
+  seed e métricas numa linha de `results/experiments.jsonl`. O ficheiro tem
+  atualmente 198 registos, incluindo os 102 resultados dos modelos aprendidos
+  nas 51 dobras não temporais (17 dobras por tarefa × dois modelos).
 
 ## Decisões metodológicas já tomadas
 

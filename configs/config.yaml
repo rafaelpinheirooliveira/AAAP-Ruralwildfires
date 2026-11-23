@@ -1,5 +1,5 @@
 # Parâmetros partilhados por todas as experiências.
-# Os valores de Amin são propostas a confirmar na análise exploratória.
+# Amin principal escolhido na análise exploratória; os restantes são sensibilidades.
 seed: 42
 study_period:
   start: 2001-01-01
