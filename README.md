@@ -269,6 +269,27 @@ que suspeitas da mesma freguesia e minuto não atravessam treino/validação/tes
   nas 51 dobras não temporais e 54 registos de sensibilidade a possíveis
   duplicados da Tarefa 3.
 
+  Os intervalos mensais de 95% para a AP estão em
+  `results/uncertainty.jsonl`, com 108 registos de seed 42 e 1000 réplicas por
+  dobra.
+
+### Incerteza
+
+Os intervalos bootstrap de 95% por mês estão em
+`results/uncertainty.jsonl`. O bloco é o mês da observação do teste, evitando
+que dias do mesmo mês sejam tratados como independentes. Execute e recalcule:
+
+```powershell
+python src/bootstrap_uncertainty.py --replicates 1000 --resume
+python src/run_experiments.py --task 1 --protocol random --models logistic histgb --seed 43 --resume
+python src/run_experiments.py --task 1 --protocol random --models logistic histgb --seed 44 --resume
+```
+
+Na comparação aleatória, a AP média variou menos de 0,001 entre as seeds 42,
+43 e 44. A variação espacial continua substancial entre distritos; os
+intervalos mensais por dobra estão no ficheiro de incerteza e não são
+intervalos sobre a média de folds.
+
 ## Decisões metodológicas já tomadas
 
 - Unidade territorial de referência: **concelho** (278 em Portugal continental).

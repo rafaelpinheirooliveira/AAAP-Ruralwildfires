@@ -242,6 +242,27 @@ da população sinalizada, não corrige fuga entre divisões.
 - O runner permite retomar uma execução com `--resume`, saltando combinações
   tarefa/alvo/protocolo/conjunto de features/dobra/modelo já presentes no
   ficheiro de saída.
+- `run_experiments.py` aceita `--seed`, permitindo medir a variação de divisões
+  aleatórias e inicializações estocásticas sem alterar a seed principal.
+- `bootstrap_uncertainty.py` reconstrói as experiências de seed 42,
+  ajusta o estimador aprovado na validação e usa bootstrap com substituição
+  de meses completos no conjunto de teste. Os intervalos são de 95% por
+  defeito e ficam em `results/uncertainty.jsonl`.
+
+### Incerteza por bootstrap mensal
+
+O ficheiro `results/uncertainty.jsonl` contém 108 intervalos de seed 42:
+três tarefas × logística/HistGradientBoosting × (uma dobra temporal, cinco
+aleatórias, seis espaciais e seis espaciotemporais). Cada intervalo usa 1000
+réplicas a resamplear meses completos do conjunto de teste. O bloco mensal
+preserva a dependência temporal dentro de cada mês melhor do que um bootstrap
+de linhas independentes.
+
+Para a comparação aleatória, a AP média de seeds 42, 43 e 44 variou menos de
+0,001 em todas as tarefas/modelos. Os intervalos mensais não substituem a
+variação entre dobras ou macro-regiões; reportam a incerteza amostral de cada
+dobra individual e devem ser interpretados juntamente com o intervalo entre
+resultados espaciais.
 
 ## 9. Por decidir ou confirmar
 

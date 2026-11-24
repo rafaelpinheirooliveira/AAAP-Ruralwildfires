@@ -415,6 +415,7 @@ def main() -> None:
     parser.add_argument("--task", type=int, choices=(1, 2, 3), required=True)
     parser.add_argument("--protocol", choices=PROTOCOLS, required=True)
     parser.add_argument("--amin", type=float, default=10)
+    parser.add_argument("--seed", type=int, help="seed (por omissão, configs/config.yaml)")
     parser.add_argument("--feature-set")
     parser.add_argument("--models", nargs="+", choices=MODELS, default=list(MODELS))
     parser.add_argument(
@@ -431,6 +432,9 @@ def main() -> None:
     args = parser.parse_args()
 
     config = _config()
+    seed = config["seed"] if args.seed is None else args.seed
+    if seed < 0:
+        raise SystemExit("--seed tem de ser não negativo.")
     if args.amin not in {config["amin_main"], *config["amin_sensitivity"]}:
         raise SystemExit(f"Amin tem de ser um dos valores configurados: "
                          f"{config['amin_sensitivity']} ou {config['amin_main']}.")
@@ -444,7 +448,7 @@ def main() -> None:
     )
     if args.exclude_possible_duplicates:
         print(f"Excluídos {excluded_duplicate_rows:,} registos assinalados como possíveis duplicados.")
-    folds = _splits(args.task, data, y, args.protocol, config["seed"])
+    folds = _splits(args.task, data, y, args.protocol, seed)
     if args.max_folds is not None:
         if args.max_folds < 1:
             raise SystemExit("--max-folds tem de ser positivo.")
@@ -471,6 +475,7 @@ def main() -> None:
                     and record.get("target") == target
                     and record.get("protocol") == args.protocol
                     and record.get("feature_set") == feature_set
+                    and record.get("seed") == seed
                     and record.get("possible_duplicates_excluded", False)
                     == args.exclude_possible_duplicates
                 ):
@@ -488,7 +493,7 @@ def main() -> None:
                     raise SystemExit("O baseline history só se aplica às Tarefas 1 e 2.")
                 raise SystemExit("O baseline history requer o conjunto de features history.")
             metrics, selection = _run_fold(
-                model, features, config["seed"], data, y, train, validation, test
+                model, features, seed, data, y, train, validation, test
             )
             record = {
                 "run_timestamp_utc": datetime.now(timezone.utc).isoformat(),
@@ -507,7 +512,7 @@ def main() -> None:
                 "possible_duplicates_excluded": args.exclude_possible_duplicates,
                 "excluded_possible_duplicate_rows": excluded_duplicate_rows,
                 "model": model,
-                "seed": config["seed"],
+                "seed": seed,
                 "train_rows": len(train),
                 "train_positives": int(y.iloc[train].sum()),
                 "validation_rows": len(validation),
