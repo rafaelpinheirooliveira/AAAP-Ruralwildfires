@@ -47,6 +47,7 @@ A área ardida final só é usada para construir o alvo, nunca como feature.
 - [x] Scripts de integração espacial e construção de features CEMS até d−1
 - [x] Avaliação reprodutível sem CEMS: modelos temporais, aleatórios, espaciais e espaciotemporais
 - [x] Sensibilidade da Tarefa 3 sem os 8 378 registos marcados como possíveis duplicados
+- [x] Sensibilidade a `Amin` (5, 10, 50 e 100 ha) nas Tarefas 2 e 3
 - [ ] CEMS anual 2001–2025: só 2001 e 2002 obtidos; 2003–2021 sem descarga
       após duas tentativas por ano; 2022–2025 ainda por testar. O ficheiro de
       agosto de 2017 é apenas um teste mensal; falta a integração completa e a
@@ -239,6 +240,27 @@ protocolos espaciais, e os valores não devem ser comparados sem considerar a
 prevalência e a composição de cada teste. Isto completa a comparação de
 referência sem CEMS, não as análises de sensibilidade nem a ablação
 meteorológica.
+
+### Sensibilidade ao limiar `Amin` (Tarefas 2 e 3)
+
+Os limiares 5, 10, 50 e 100 ha foram avaliados nos quatro protocolos. À medida
+que `Amin` aumenta, os positivos tornam-se mais raros e a AP tende a diminuir:
+
+| Tarefa | Protocolo | Amin 5 ha | Amin 10 ha | Amin 50 ha | Amin 100 ha |
+|---|---|---:|---:|---:|---:|
+| 2 — incêndio significativo | Temporal | 0,0802 | 0,0701 | 0,0242 | 0,0141 |
+| 2 — incêndio significativo | Aleatório | 0,1343 | 0,0921 | 0,0429 | 0,0270 |
+| 2 — incêndio significativo | Espacial | 0,1240 | 0,0832 | 0,0392 | 0,0242 |
+| 2 — incêndio significativo | Espaciotemporal | 0,0739 | 0,0660 | 0,0300 | 0,0168 |
+| 3 — dimensão no alerta | Temporal | 0,1714 | 0,1159 | 0,0417 | 0,0290 |
+| 3 — dimensão no alerta | Aleatório | 0,1550 | 0,1072 | 0,0497 | 0,0367 |
+| 3 — dimensão no alerta | Espacial | 0,1112 | 0,0735 | 0,0338 | 0,0259 |
+| 3 — dimensão no alerta | Espaciotemporal | 0,1301 | 0,0865 | 0,0354 | 0,0238 |
+
+A tabela usa a AP média do HistGradientBoosting. As prevalências de teste por
+`Amin` estão reportadas por dobra no JSONL. Os resultados mostram que a
+dificuldade aumenta com a raridade da classe, não que os limiares elevados sejam
+irrepreensivelmente inferiores em separação relativa (a ROC-AUC pode subir).
 
 ### Sensibilidade a possíveis duplicados (Tarefa 3)
 

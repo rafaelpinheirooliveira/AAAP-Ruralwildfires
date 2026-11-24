@@ -282,5 +282,9 @@ resultados espaciais.
 - A avaliação principal sem CEMS está concluída nos quatro protocolos; a
   experiência temporal está resumida no README e os resultados por dobra estão
   no JSONL.
-- Subamostragem de negativos, *bootstrap* em blocos, análise de erros,
-  importância por permutação e efeito de `Amin` permanecem por executar.
+- A sensibilidade a `Amin` (5, 10, 50 e 100 ha) está concluída nas Tarefas 2 e
+  3 nos quatro protocolos. Os positivos diminuem de 22 255 para 3 178 na
+  população Tarefa 2 e de 26 236 para 3 416 na Tarefa 3; a AP também diminui
+  em geral, refletindo a maior raridade.
+- Subamostragem de negativos, análise de erros e importância por permutação
+  permanecem por executar.
