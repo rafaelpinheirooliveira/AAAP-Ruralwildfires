@@ -176,9 +176,17 @@ correlacionados e um *bootstrap* simples subestimaria a incerteza.
 - A comparação **com e sem localização** é essencial na avaliação espacial,
   para saber se o modelo só decora regiões.
 
-**Cautelas na interpretação (E10).** A importância por permutação é
-enganadora com variáveis correlacionadas (por exemplo, as contagens a 7 e a 30
-dias), e importância não é causalidade.
+**Cautelas na interpretação (E10).** A importância por permutação pode ser
+subestimada ou redistribuída entre variáveis correlacionadas (por exemplo, as
+contagens a 7 e a 30 dias), e importância não é causalidade. As explicações
+usam o teste temporal de 2021–2025 apenas como análise pós-hoc: os parâmetros
+vêm da validação e não são alterados com base nas explicações. A importância
+usa AP em amostra estratificada de até 100 000 linhas e três permutações; os
+gráficos de dependência parcial usam até 20 000 linhas e mostram as três
+features com maior importância média. As curvas descrevem associações do
+modelo, não efeitos causais; o desvio-padrão entre permutações não é um
+intervalo de confiança. Os scores não devem ser interpretados como
+probabilidades calibradas.
 
 ### Resultados da avaliação sem CEMS
 
@@ -243,6 +251,18 @@ Tarefas 2 e 3, e a maioria dos falsos negativos destas tarefas está na classe
 de menor dimensão significativa (10–50 ha). A tabela e a discussão estão no
 [README](../README.md). A distribuição foi analisada apenas no teste temporal;
 não se presume que se repita nos outros protocolos.
+
+### E10 — explicabilidade
+
+A E10 foi executada para as três tarefas e os dois modelos no teste temporal.
+As seis análises reproduzem os parâmetros, limiares e métricas principais.
+Permutação e dependência parcial são diagnósticos pós-hoc e não alteraram os
+modelos. O histórico recente é mais importante nas tarefas concelho-dia; na
+Tarefa 3 destacam-se latitude, longitude e dia do ano. Os resultados numéricos
+e as curvas estão em `results/e10_explainability.json` e
+`results/figures/e10_*.png`; a tabela de importâncias e a interpretação estão
+no [README](../README.md). Os scores são não calibrados e as importâncias não
+implicam causalidade.
 
 ### Sensibilidade a possíveis duplicados (Tarefa 3)
 
@@ -341,5 +361,5 @@ resultados espaciais.
 - A E9 foi concluída no teste temporal principal para as três tarefas e ambos
   os modelos; a análise de erro por dobra dos outros protocolos permanece por
   fazer.
-- A importância por permutação e dependência parcial (E10) permanece por
-  executar.
+- A E10 foi concluída para as três tarefas e ambos os modelos no teste temporal;
+  os resultados não alteraram seleção de features nem hiperparâmetros.

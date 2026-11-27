@@ -51,7 +51,7 @@ A área ardida final só é usada para construir o alvo, nunca como feature.
 - [x] E5 — comparação de estratégias de desbalanceamento nas três tarefas e quatro protocolos
 - [x] Incerteza por bootstrap mensal em blocos
 - [x] E9 — análise de erros no teste temporal principal, para as três tarefas e dois modelos
-- [ ] E10 — importância e explicações dos modelos
+- [x] E10 — importância por permutação e dependência parcial nos três alvos
 - [ ] CEMS anual 2001–2025: só 2001 e 2002 obtidos; 2003–2021 sem descarga
       após duas tentativas por ano; 2022–2025 ainda por testar. O ficheiro de
       agosto de 2017 é apenas um teste mensal; falta a integração completa e a
@@ -331,6 +331,37 @@ Para reproduzir as seis análises:
 
 ```powershell
 python src\analyze_errors.py
+```
+
+### E10 — importância por permutação e dependência parcial
+
+As explicações usam o teste temporal de 2021–2025 depois de os parâmetros e
+limiares terem sido fixados na validação. A importância é a queda média de AP
+após permutar cada feature (três repetições; amostra estratificada de até
+100 000 linhas). A dependência parcial mostra as três features com maior queda
+média, calculadas sobre até 20 000 observações do teste. As barras dos gráficos
+indicam o desvio-padrão entre permutações, não um intervalo de confiança.
+
+| Tarefa | Modelo | Três maiores quedas de AP por permutação |
+|---|---|---|
+| 1 | Logística | dias desde último incêndio (0,0700); incêndios 7d (0,0633); incêndios 1d (0,0291) |
+| 1 | HistGradientBoosting | incêndios 30d (0,0473); dias desde último incêndio (0,0373); dia do ano (0,0196) |
+| 2 | Logística | dia do ano (0,0198); dias desde último incêndio (0,0160); área extinta 30d (0,0157) |
+| 2 | HistGradientBoosting | área extinta 30d (0,0601); dias desde último incêndio (0,0330); incêndios 1d (0,0231) |
+| 3 | Logística | longitude (0,0247); dia do ano (0,0125); latitude (0,0014) |
+| 3 | HistGradientBoosting | latitude (0,0513); longitude (0,0464); dia do ano (0,0254) |
+
+O histórico recente domina as tarefas concelho-dia; na Tarefa 3, localização
+e sazonalidade destacam-se. Estas importâncias não são causais e podem ser
+redistribuídas por features correlacionadas. Uma queda negativa (por exemplo,
+`feat_mes` em alguns modelos) significa que a AP não piorou ao permutar essa
+feature; não é motivo suficiente para a remover nem prova de efeito nocivo.
+Os resultados completos e os valores das curvas estão em
+`results/e10_explainability.json`; os seis gráficos estão em `results/figures/`.
+Para reproduzir:
+
+```powershell
+python src\explain_models.py
 ```
 
 ### Sensibilidade a possíveis duplicados (Tarefa 3)
