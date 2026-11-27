@@ -301,13 +301,30 @@ def _pipeline(model: str, seed: int, class_weight: str | None = None, leaves: in
     raise ValueError(f"Modelo desconhecido: {model}")
 
 
-def _candidates(model: str, seed: int) -> list[tuple[object, dict]]:
+def _candidates(
+    model: str, seed: int, imbalance_strategy: str = "default"
+) -> list[tuple[object, dict]]:
     if model == "logistic":
+        if imbalance_strategy != "default":
+            weight = "balanced" if imbalance_strategy == "class-weight" else None
+            return [
+                (_pipeline(model, seed, weight), {
+                    "class_weight": weight, "C": 1.0,
+                })
+            ]
         return [
             (_pipeline(model, seed, weight), {"class_weight": weight, "C": 1.0})
             for weight in (None, "balanced")
         ]
     if model == "histgb":
+        if imbalance_strategy != "default":
+            weight = "balanced" if imbalance_strategy == "class-weight" else None
+            return [
+                (_pipeline(model, seed, weight, leaves), {
+                    "class_weight": weight, "max_leaf_nodes": leaves, "max_iter": 100,
+                })
+                for leaves in (15, 31)
+            ]
         return [
             (_pipeline(model, seed, "balanced", leaves), {
                 "class_weight": "balanced", "max_leaf_nodes": leaves, "max_iter": 100,
@@ -317,6 +334,25 @@ def _candidates(model: str, seed: int) -> list[tuple[object, dict]]:
     if model == "prior":
         return [(_pipeline(model, seed), {"strategy": "prior"})]
     return []
+
+
+def _training_rows(
+    train: np.ndarray, y: pd.Series, imbalance_strategy: str, seed: int
+) -> np.ndarray:
+    if imbalance_strategy != "undersample-10to1":
+        return train
+
+    labels = y.iloc[train].to_numpy()
+    positives = train[labels == 1]
+    negatives = train[labels == 0]
+    if len(positives) == 0 or len(negatives) == 0:
+        raise ValueError("A subamostragem requer exemplos de ambas as classes no treino.")
+
+    keep_count = min(len(negatives), len(positives) * 10)
+    rng = np.random.default_rng(seed)
+    selected_negatives = rng.choice(negatives, size=keep_count, replace=False)
+    selected = np.concatenate((positives, selected_negatives))
+    return rng.permutation(selected)
 
 
 def _best_f1_threshold(y: pd.Series, scores: np.ndarray) -> float:
@@ -357,14 +393,17 @@ def _run_fold(
     model: str,
     features: list[str],
     seed: int,
+    imbalance_strategy: str,
+    sampling_seed: int,
     data: pd.DataFrame,
     y: pd.Series,
     train: np.ndarray,
     validation: np.ndarray,
     test: np.ndarray,
 ) -> tuple[dict, dict]:
-    x_train = data.iloc[train][features]
-    y_train = y.iloc[train]
+    fit_train = _training_rows(train, y, imbalance_strategy, sampling_seed)
+    x_train = data.iloc[fit_train][features]
+    y_train = y.iloc[fit_train]
     x_validation = data.iloc[validation][features]
     y_validation = y.iloc[validation]
     x_test = data.iloc[test][features]
@@ -378,7 +417,7 @@ def _run_fold(
         best = (None, {"rule": "feat_n_incendios_7d"}, validation_scores)
     else:
         best_ap = -np.inf
-        for estimator, parameters in _candidates(model, seed):
+        for estimator, parameters in _candidates(model, seed, imbalance_strategy):
             estimator.fit(x_train, y_train)
             candidate_scores = _scores(estimator, x_validation)
             score = average_precision_score(y_validation, candidate_scores)
@@ -403,6 +442,8 @@ def _run_fold(
         "parameters": parameters,
         "threshold_selected_on_validation": threshold,
         "validation_average_precision": float(average_precision_score(y_validation, validation_scores)),
+        "train_rows_used": len(fit_train),
+        "train_positives_used": int(y_train.sum()),
     }
 
 
@@ -418,6 +459,12 @@ def main() -> None:
     parser.add_argument("--seed", type=int, help="seed (por omissão, configs/config.yaml)")
     parser.add_argument("--feature-set")
     parser.add_argument("--models", nargs="+", choices=MODELS, default=list(MODELS))
+    parser.add_argument(
+        "--imbalance-strategy",
+        choices=("default", "none", "class-weight", "undersample-10to1", "all"),
+        default="default",
+        help="estratégia E5; 'all' compara as três estratégias na mesma divisão",
+    )
     parser.add_argument(
         "--exclude-possible-duplicates", action="store_true",
         help="sensibilidade da Tarefa 3 sem os registos assinalados como possíveis duplicados",
@@ -441,6 +488,17 @@ def main() -> None:
     feature_set = args.feature_set or _feature_set_default(args.task)
     if args.exclude_possible_duplicates and args.task != 3:
         raise SystemExit("--exclude-possible-duplicates só se aplica à Tarefa 3.")
+    strategies = (
+        ("none", "class-weight", "undersample-10to1")
+        if args.imbalance_strategy == "all"
+        else (args.imbalance_strategy,)
+    )
+    if any(strategy != "default" for strategy in strategies) and any(
+        model not in ("logistic", "histgb") for model in args.models
+    ):
+        raise SystemExit(
+            "--imbalance-strategy só se aplica aos modelos logistic e histgb."
+        )
     features = _features(args.task, feature_set)
     target = _target(args.task, args.amin)
     data, y, excluded_duplicate_rows = _load_data(
@@ -476,72 +534,86 @@ def main() -> None:
                     and record.get("protocol") == args.protocol
                     and record.get("feature_set") == feature_set
                     and record.get("seed") == seed
+                    and record.get("imbalance_strategy", "default") in strategies
                     and record.get("possible_duplicates_excluded", False)
                     == args.exclude_possible_duplicates
                 ):
-                    completed.add((record.get("fold"), record.get("model")))
+                    completed.add((
+                        record.get("fold"), record.get("model"),
+                        record.get("imbalance_strategy", "default"),
+                    ))
 
-    for fold_name, train, validation, test in folds:
-        for model in args.models:
-            if (fold_name, model) in completed:
-                print(f"  {model}: {fold_name} já registada; ignorada")
-                continue
-            if model == "history" and not any(
-                feature in features for feature in ("feat_n_incendios_7d",)
-            ):
-                if args.task == 3:
-                    raise SystemExit("O baseline history só se aplica às Tarefas 1 e 2.")
-                raise SystemExit("O baseline history requer o conjunto de features history.")
-            metrics, selection = _run_fold(
-                model, features, seed, data, y, train, validation, test
-            )
-            record = {
-                "run_timestamp_utc": datetime.now(timezone.utc).isoformat(),
-                "dataset_version": "ICNF-SGIF-2001-2025; CAOP2025 when required",
-                "python_version": platform.python_version(),
-                "scikit_learn_version": sklearn.__version__,
-                "task": args.task,
-                "unit": "municipality-day" if args.task in (1, 2) else "occurrence",
-                "target": target,
-                "amin_ha": args.amin if args.task in (2, 3) else None,
-                "prediction_moment": "23:59 d-1" if args.task in (1, 2) else "DataHoraAlerta",
-                "protocol": args.protocol,
-                "fold": fold_name,
-                "feature_set": feature_set,
-                "features": features,
-                "possible_duplicates_excluded": args.exclude_possible_duplicates,
-                "excluded_possible_duplicate_rows": excluded_duplicate_rows,
-                "model": model,
-                "seed": seed,
-                "train_rows": len(train),
-                "train_positives": int(y.iloc[train].sum()),
-                "validation_rows": len(validation),
-                "validation_positives": int(y.iloc[validation].sum()),
-                "test_rows": len(test),
-                "test_positives": int(y.iloc[test].sum()),
-                "test_prevalence": float(y.iloc[test].mean()),
-                "test_period": [
-                    str(data.iloc[test]["date"].min().date()),
-                    str(data.iloc[test]["date"].max().date()),
-                ] if args.task in (1, 2) else [
-                    str(data.iloc[test]["data_hora_alerta"].min()),
-                    str(data.iloc[test]["data_hora_alerta"].max()),
-                ],
-                "test_district_codes": sorted(
-                    data.iloc[test]["cod_distrito"].astype(str).unique().tolist()
-                ) if args.task in (1, 2) else sorted(
-                    data.iloc[test]["feat_cod_distrito"].astype(str).unique().tolist()
-                ),
-                "validation": selection,
-                "metrics": metrics,
-            }
-            args.output.parent.mkdir(parents=True, exist_ok=True)
-            with args.output.open("a", encoding="utf-8") as file:
-                file.write(json.dumps(record, ensure_ascii=False) + "\n")
-            print(
-                f"  {model}: PR-AUC={metrics['average_precision']:.4f}, "
-                f"ROC-AUC={metrics['roc_auc']:.4f}, F1={metrics['f1']:.4f}"
-            )
+    for fold_index, (fold_name, train, validation, test) in enumerate(folds):
+        for imbalance_strategy in strategies:
+            for model in args.models:
+                if (fold_name, model, imbalance_strategy) in completed:
+                    print(
+                        f"  {model}/{imbalance_strategy}: {fold_name} já registada; ignorada"
+                    )
+                    continue
+                if model == "history" and not any(
+                    feature in features for feature in ("feat_n_incendios_7d",)
+                ):
+                    if args.task == 3:
+                        raise SystemExit("O baseline history só se aplica às Tarefas 1 e 2.")
+                    raise SystemExit("O baseline history requer o conjunto de features history.")
+                metrics, selection = _run_fold(
+                    model, features, seed, imbalance_strategy, seed + fold_index,
+                    data, y, train, validation, test,
+                )
+                record = {
+                    "run_timestamp_utc": datetime.now(timezone.utc).isoformat(),
+                    "dataset_version": "ICNF-SGIF-2001-2025; CAOP2025 when required",
+                    "python_version": platform.python_version(),
+                    "scikit_learn_version": sklearn.__version__,
+                    "task": args.task,
+                    "unit": "municipality-day" if args.task in (1, 2) else "occurrence",
+                    "target": target,
+                    "amin_ha": args.amin if args.task in (2, 3) else None,
+                    "prediction_moment": (
+                        "23:59 d-1" if args.task in (1, 2) else "DataHoraAlerta"
+                    ),
+                    "protocol": args.protocol,
+                    "fold": fold_name,
+                    "feature_set": feature_set,
+                    "features": features,
+                    "possible_duplicates_excluded": args.exclude_possible_duplicates,
+                    "excluded_possible_duplicate_rows": excluded_duplicate_rows,
+                    "imbalance_strategy": imbalance_strategy,
+                    "model": model,
+                    "seed": seed,
+                    "train_rows": len(train),
+                    "train_positives": int(y.iloc[train].sum()),
+                    "train_rows_used": selection["train_rows_used"],
+                    "train_positives_used": selection["train_positives_used"],
+                    "validation_rows": len(validation),
+                    "validation_positives": int(y.iloc[validation].sum()),
+                    "test_rows": len(test),
+                    "test_positives": int(y.iloc[test].sum()),
+                    "test_prevalence": float(y.iloc[test].mean()),
+                    "test_period": [
+                        str(data.iloc[test]["date"].min().date()),
+                        str(data.iloc[test]["date"].max().date()),
+                    ] if args.task in (1, 2) else [
+                        str(data.iloc[test]["data_hora_alerta"].min()),
+                        str(data.iloc[test]["data_hora_alerta"].max()),
+                    ],
+                    "test_district_codes": sorted(
+                        data.iloc[test]["cod_distrito"].astype(str).unique().tolist()
+                    ) if args.task in (1, 2) else sorted(
+                        data.iloc[test]["feat_cod_distrito"].astype(str).unique().tolist()
+                    ),
+                    "validation": selection,
+                    "metrics": metrics,
+                }
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                with args.output.open("a", encoding="utf-8") as file:
+                    file.write(json.dumps(record, ensure_ascii=False) + "\n")
+                print(
+                    f"  {model}/{imbalance_strategy}: "
+                    f"PR-AUC={metrics['average_precision']:.4f}, "
+                    f"ROC-AUC={metrics['roc_auc']:.4f}, F1={metrics['f1']:.4f}"
+                )
 
 
 if __name__ == "__main__":

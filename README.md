@@ -48,12 +48,13 @@ A área ardida final só é usada para construir o alvo, nunca como feature.
 - [x] Avaliação reprodutível sem CEMS: modelos temporais, aleatórios, espaciais e espaciotemporais
 - [x] Sensibilidade da Tarefa 3 sem os 8 378 registos marcados como possíveis duplicados
 - [x] Sensibilidade a `Amin` (5, 10, 50 e 100 ha) nas Tarefas 2 e 3
+- [x] E5 — comparação de estratégias de desbalanceamento nas três tarefas e quatro protocolos
+- [x] Incerteza por bootstrap mensal em blocos
+- [ ] Análise de erros e importância/explicações dos modelos
 - [ ] CEMS anual 2001–2025: só 2001 e 2002 obtidos; 2003–2021 sem descarga
       após duas tentativas por ano; 2022–2025 ainda por testar. O ficheiro de
       agosto de 2017 é apenas um teste mensal; falta a integração completa e a
       ablação meteorológica.
-- [ ] Sensibilidade de `Amin`, subamostragem, bootstrap em blocos, análises de
-      erros e importância/explicações permanecem por fazer.
 - [ ] Revisão de literatura: rascunho atualizado; três artigos prioritários revistos, leituras secundárias pendentes
 
 **Para o Milestone 2:** concluir a avaliação de referência sem meteorologia
@@ -238,8 +239,8 @@ todos os protocolos e tarefas; o HistGradientBoosting tem a maior AP média
 nas nove combinações. A dispersão entre folds é importante, sobretudo nos
 protocolos espaciais, e os valores não devem ser comparados sem considerar a
 prevalência e a composição de cada teste. Isto completa a comparação de
-referência sem CEMS, não as análises de sensibilidade nem a ablação
-meteorológica.
+referência sem CEMS. As análises E4 e E5 são apresentadas abaixo; a ablação
+meteorológica continua dependente de dados CEMS suficientes.
 
 ### Sensibilidade ao limiar `Amin` (Tarefas 2 e 3)
 
@@ -261,6 +262,37 @@ A tabela usa a AP média do HistGradientBoosting. As prevalências de teste por
 `Amin` estão reportadas por dobra no JSONL. Os resultados mostram que a
 dificuldade aumenta com a raridade da classe, não que os limiares elevados sejam
 irrepreensivelmente inferiores em separação relativa (a ROC-AUC pode subir).
+
+### E5 — estratégias de desbalanceamento
+
+Comparação da regressão logística (`C=1`) com dados de treino sem tratamento,
+`class_weight="balanced"` e subamostragem aleatória de negativos até 10:1.
+As três estratégias usam as mesmas dobras; validação e teste mantêm a
+prevalência natural, e cada limiar F1 é escolhido na validação. A tabela mostra
+a média da AP e do F1 entre dobras (a temporal tem uma dobra).
+
+| Tarefa | Protocolo | AP: sem / peso / 10:1 | F1: sem / peso / 10:1 |
+|---|---|---:|---:|
+| 1 | Temporal | 0,2815 / 0,2865 / 0,2815 | 0,3191 / 0,3157 / 0,3191 |
+| 1 | Aleatório | 0,4809 / 0,4790 / 0,4809 | 0,4684 / 0,4763 / 0,4684 |
+| 1 | Espacial | 0,4492 / 0,4483 / 0,4492 | 0,4363 / 0,4421 / 0,4363 |
+| 1 | Espaciotemporal | 0,2553 / 0,2593 / 0,2553 | 0,2915 / 0,2872 / 0,2915 |
+| 2 | Temporal | 0,0383 / 0,0376 / 0,0401 | 0,1005 / 0,1042 / 0,1045 |
+| 2 | Aleatório | 0,0586 / 0,0571 / 0,0589 | 0,1344 / 0,1346 / 0,1367 |
+| 2 | Espacial | 0,0604 / 0,0574 / 0,0594 | 0,1046 / 0,1017 / 0,1046 |
+| 2 | Espaciotemporal | 0,0453 / 0,0414 / 0,0452 | 0,0738 / 0,0785 / 0,0746 |
+| 3 | Temporal | 0,0684 / 0,0680 / 0,0681 | 0,0889 / 0,0857 / 0,0861 |
+| 3 | Aleatório | 0,0614 / 0,0614 / 0,0614 | 0,1122 / 0,1114 / 0,1114 |
+| 3 | Espacial | 0,0545 / 0,0545 / 0,0544 | 0,0839 / 0,0847 / 0,0834 |
+| 3 | Espaciotemporal | 0,0624 / 0,0619 / 0,0623 | 0,1015 / 0,0951 / 0,0971 |
+
+Não há uma estratégia vencedora em todos os cenários. A subamostragem tem
+ganhos pequenos de AP na Tarefa 2 temporal e aleatória, mas não nos protocolos
+espacial e espaciotemporal; na Tarefa 3 as diferenças são mínimas. A Tarefa 1
+já tem prevalência próxima de 1:9, pelo que o limite 10:1 não removeu exemplos
+em nenhuma dobra. Foram registadas 162 execuções (54 dobras × 3 estratégias)
+em `results/e5_imbalance.jsonl`. A E5 testa a logística; não permite concluir
+qual seria a melhor estratégia para o HistGradientBoosting.
 
 ### Sensibilidade a possíveis duplicados (Tarefa 3)
 

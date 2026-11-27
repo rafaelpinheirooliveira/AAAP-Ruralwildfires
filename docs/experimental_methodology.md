@@ -115,16 +115,24 @@ para uma ablação específica, não para a comparação base entre protocolos.
 A Tarefa 2 é a mais exigente, e piora com `Amin` maior (1:799 a 100 ha).
 Estratégias a comparar na experiência E5:
 
-1. Sem tratamento (referência).
-2. Pesos de classe (`class_weight`): grelha logística com `None` e `balanced`;
-   HistGradientBoosting com `balanced`.
-3. Ajuste do limiar de decisão na validação.
-4. Subamostragem dos negativos, **apenas no treino**, permanece por executar.
+1. Sem tratamento (`class_weight=None`).
+2. Peso de classe (`class_weight="balanced"`).
+3. Subamostragem aleatória dos negativos sem reposição, até 10 negativos por
+   positivo, **apenas no treino**.
 
 Sobreamostragem sintética (SMOTE) não é a primeira escolha: os dados incluem
 variáveis de calendário e localização, para as quais interpolar exemplos
 sintéticos tem pouco sentido. Só será testada se sobrar tempo, e sempre dentro
 do treino.
+
+Na E5, a regressão logística (`C=1`) é mantida fixa para isolar o efeito das
+estratégias; executa-se a comparação nas três tarefas e nos quatro protocolos.
+Cada estratégia usa a mesma divisão, a validação e o teste conservam a
+prevalência natural, e o limiar F1 é escolhido separadamente na validação.
+Subamostrar altera a prevalência de treino para, no máximo, 1:10; as métricas
+de probabilidades, em particular Brier, devem ser lidas com cautela porque não
+há recalibração posterior. Esta E5 não compara o efeito das estratégias no
+HistGradientBoosting.
 
 ## 6. Métricas e limiar
 
@@ -199,8 +207,26 @@ logística seja melhor em algumas dobras individuais da Tarefa 3. A diferença e
 protocolos reflete, além da dificuldade de generalização, as diferentes
 prevalências e conjuntos de teste; a AP não deve ser interpretada sem o
 baseline de cada linha. Estes resultados fecham a avaliação comparativa de
-referência sem CEMS; não substituem a ablação de features, a análise de
-sensibilidade, o bootstrap em blocos ou a análise de erros.
+referência sem CEMS; não substituem a ablação de features nem a análise de
+erros.
+
+### E5 — estratégias de desbalanceamento
+
+A E5 comparou regressão logística com `C=1`, sem tratamento, pesos de classe
+`balanced` e subamostragem de negativos até 10:1, nas três tarefas e nos quatro
+protocolos. Foram registadas 162 execuções (54 dobras × 3 estratégias) em
+`results/e5_imbalance.jsonl`; cada dobra usa a mesma divisão entre estratégias.
+A validação e o teste mantêm a prevalência natural, e cada limiar F1 é escolhido
+separadamente na validação. A tabela completa de AP e F1 está no
+[README](../README.md).
+
+Não houve estratégia universalmente superior. Para a Tarefa 2, a
+subamostragem aumentou ligeiramente a AP temporal (0,0383 → 0,0401) e aleatória
+(0,0586 → 0,0589), mas não a espacial (0,0604 → 0,0594) ou espaciotemporal
+(0,0453 → 0,0452). Na Tarefa 3 as diferenças foram muito pequenas. Na Tarefa 1
+o treino já tinha menos de dez negativos por positivo, pelo que a subamostragem
+não removeu linhas. As comparações E5 foram feitas apenas com logística; não
+permitem determinar a melhor estratégia para HistGradientBoosting.
 
 ### Sensibilidade a possíveis duplicados (Tarefa 3)
 
@@ -234,6 +260,14 @@ da população sinalizada, não corrige fuga entre divisões.
   (não `.csv`, porque o `.gitignore` ignora CSV), com: versão do dataset,
   período, âmbito geográfico, tarefa, momento da previsão, `Amin`, conjunto de
   features, protocolo, modelo, hiperparâmetros, seed e métricas.
+- As execuções E5 ficam separadas em `results/e5_imbalance.jsonl`, com a
+  estratégia e o número de linhas/positivos usados no ajuste; `--resume`
+  distingue também as estratégias.
+- A subamostragem usa `seed + índice da dobra` e seleção sem reposição.
+- Para repetir uma combinação, usa-se
+  `python src/run_experiments.py --task 2 --protocol temporal --models logistic --imbalance-strategy all --output results/e5_reproduction.jsonl`;
+  repetir para as restantes tarefas e protocolos. `--resume` pode ser
+  acrescentado para continuar uma execução interrompida.
 - Todos os conjuntos de features vêm das listas definidas no código
   (`FEATURES_AT_2359`, `FEATURES_AT_ALERT`). As ablações CEMS acrescentam
   explicitamente os índices de d−1. A implementação atual usa as sete
@@ -286,5 +320,7 @@ resultados espaciais.
   3 nos quatro protocolos. Os positivos diminuem de 22 255 para 3 178 na
   população Tarefa 2 e de 26 236 para 3 416 na Tarefa 3; a AP também diminui
   em geral, refletindo a maior raridade.
-- Subamostragem de negativos, análise de erros e importância por permutação
-  permanecem por executar.
+- A E5 está concluída para a logística, nas três tarefas e quatro protocolos;
+  os resultados não determinam a estratégia ótima para HistGradientBoosting.
+- Análise de erros e importância por permutação/dependência parcial permanecem
+  por executar.
