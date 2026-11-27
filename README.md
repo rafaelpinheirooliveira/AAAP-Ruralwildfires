@@ -50,7 +50,8 @@ A área ardida final só é usada para construir o alvo, nunca como feature.
 - [x] Sensibilidade a `Amin` (5, 10, 50 e 100 ha) nas Tarefas 2 e 3
 - [x] E5 — comparação de estratégias de desbalanceamento nas três tarefas e quatro protocolos
 - [x] Incerteza por bootstrap mensal em blocos
-- [ ] Análise de erros e importância/explicações dos modelos
+- [x] E9 — análise de erros no teste temporal principal, para as três tarefas e dois modelos
+- [ ] E10 — importância e explicações dos modelos
 - [ ] CEMS anual 2001–2025: só 2001 e 2002 obtidos; 2003–2021 sem descarga
       após duas tentativas por ano; 2022–2025 ainda por testar. O ficheiro de
       agosto de 2017 é apenas um teste mensal; falta a integração completa e a
@@ -293,6 +294,44 @@ já tem prevalência próxima de 1:9, pelo que o limite 10:1 não removeu exempl
 em nenhuma dobra. Foram registadas 162 execuções (54 dobras × 3 estratégias)
 em `results/e5_imbalance.jsonl`. A E5 testa a logística; não permite concluir
 qual seria a melhor estratégia para o HistGradientBoosting.
+
+### E9 — falsos positivos e falsos negativos
+
+Os erros foram caracterizados no teste temporal fechado de 2021–2025, para as
+três tarefas e ambos os modelos. O limiar e os parâmetros são os mesmos
+selecionados na validação de 2018–2020; a execução confirmou que os resultados
+reproduzem os registos principais. A tabela mostra contagens e a taxa de falsos
+negativos (FN / positivos reais).
+
+| Tarefa | Modelo | Falsos positivos | Falsos negativos | Taxa de FN | F1 |
+|---|---|---:|---:|---:|---:|
+| 1 — ocorrência | Logística | 22 415 | 20 830 | 67,6% | 0,3157 |
+| 1 — ocorrência | HistGradientBoosting | 27 065 | 18 808 | 61,1% | 0,3435 |
+| 2 — incêndio ≥10 ha | Logística | 2 097 | 1 394 | 87,3% | 0,1042 |
+| 2 — incêndio ≥10 ha | HistGradientBoosting | 2 030 | 1 309 | 82,0% | 0,1471 |
+| 3 — ocorrência ≥10 ha | Logística | 1 855 | 1 645 | 90,9% | 0,0857 |
+| 3 — ocorrência ≥10 ha | HistGradientBoosting | 2 054 | 1 460 | 80,7% | 0,1657 |
+
+A proporção de falsos negativos é maior nas tarefas de incêndios
+significativos: ambos os modelos deixam passar a maioria dos positivos,
+sobretudo na Tarefa 3. Na Tarefa 2, cerca de dois terços dos FN correspondem a
+dias com máximo entre 10 e 50 ha; os falsos positivos dividem-se entre dias sem
+incêndio e dias com incêndio abaixo de 10 ha. Na Tarefa 3, cerca de dois terços
+dos FN são ocorrências de 10–50 ha, e aproximadamente três quartos dos falsos
+positivos são incêndios com menos de 1 ha. Na Tarefa 1, o HistGradientBoosting
+reduz FN face à logística, mas gera mais falsos alarmes.
+
+As taxas variam entre anos, meses e distritos; por exemplo, a Tarefa 1 tem mais
+FN em novembro/dezembro, enquanto os erros sazonais das Tarefas 2 e 3 seguem
+padrões diferentes. O detalhe por ano, mês, distrito, concelho e, na Tarefa 3,
+hora do alerta está em `results/e9_error_analysis.json`. É uma análise
+descritiva do protocolo temporal principal; não se deve extrapolar a mesma
+distribuição de erros aos protocolos aleatório, espacial ou espaciotemporal.
+Para reproduzir as seis análises:
+
+```powershell
+python src\analyze_errors.py
+```
 
 ### Sensibilidade a possíveis duplicados (Tarefa 3)
 

@@ -228,6 +228,22 @@ o treino já tinha menos de dez negativos por positivo, pelo que a subamostragem
 não removeu linhas. As comparações E5 foram feitas apenas com logística; não
 permitem determinar a melhor estratégia para HistGradientBoosting.
 
+### E9 — análise de erros
+
+A E9 caracteriza, sem voltar a selecionar modelos no teste, os falsos positivos
+e negativos do protocolo temporal principal (teste 2021–2025) para logística e
+HistGradientBoosting nas três tarefas. O modelo e o limiar são reproduzidos
+pela seleção na validação (2018–2020); o script confirma parâmetros, limiar e
+métricas contra `results/experiments.jsonl` antes de resumir os erros por ano,
+mês, distrito e concelho. Na Tarefa 3 acrescenta-se a hora do alerta; nas
+Tarefas 2 e 3, os erros são ainda decompostos pela área ardida final. Os
+resultados agregados das seis combinações (três tarefas × dois modelos) ficam
+em `results/e9_error_analysis.json`. A taxa de falsos negativos é elevada nas
+Tarefas 2 e 3, e a maioria dos falsos negativos destas tarefas está na classe
+de menor dimensão significativa (10–50 ha). A tabela e a discussão estão no
+[README](../README.md). A distribuição foi analisada apenas no teste temporal;
+não se presume que se repita nos outros protocolos.
+
 ### Sensibilidade a possíveis duplicados (Tarefa 3)
 
 A marca `flag_possivel_duplicado` assinala 8 378 registos (mesma freguesia e
@@ -322,5 +338,8 @@ resultados espaciais.
   em geral, refletindo a maior raridade.
 - A E5 está concluída para a logística, nas três tarefas e quatro protocolos;
   os resultados não determinam a estratégia ótima para HistGradientBoosting.
-- Análise de erros e importância por permutação/dependência parcial permanecem
-  por executar.
+- A E9 foi concluída no teste temporal principal para as três tarefas e ambos
+  os modelos; a análise de erro por dobra dos outros protocolos permanece por
+  fazer.
+- A importância por permutação e dependência parcial (E10) permanece por
+  executar.

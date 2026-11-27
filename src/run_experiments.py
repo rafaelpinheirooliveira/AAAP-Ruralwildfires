@@ -106,6 +106,7 @@ def _load_data(
     target: str,
     features: list[str],
     exclude_possible_duplicates: bool = False,
+    extra_columns: tuple[str, ...] = (),
 ) -> tuple[pd.DataFrame, pd.Series, int]:
     if exclude_possible_duplicates and task != 3:
         raise ValueError("A exclusão de possíveis duplicados só se aplica à Tarefa 3.")
@@ -117,7 +118,7 @@ def _load_data(
     source_features = [feature for feature in features if feature not in derived_features]
     if task in (1, 2):
         metadata = ["date", "cod_concelho", "cod_distrito"]
-        needed = list(dict.fromkeys(metadata + source_features + [target]))
+        needed = list(dict.fromkeys(metadata + source_features + list(extra_columns) + [target]))
         data = pd.read_parquet(TERRITORY, columns=needed)
         data["date"] = pd.to_datetime(data["date"])
         data["cod_concelho"] = data["cod_concelho"].astype(str).str.zfill(4)
@@ -128,7 +129,7 @@ def _load_data(
         metadata = ["data_hora_alerta", "ano", "feat_cod_distrito", "feat_cod_concelho"]
         if exclude_possible_duplicates:
             metadata.append("flag_possivel_duplicado")
-        needed = list(dict.fromkeys(metadata + source_features + [target]))
+        needed = list(dict.fromkeys(metadata + source_features + list(extra_columns) + [target]))
         data = pd.read_parquet(OCCURRENCES, columns=needed)
         data["data_hora_alerta"] = pd.to_datetime(data["data_hora_alerta"])
         data["ano"] = data["data_hora_alerta"].dt.year
@@ -400,7 +401,7 @@ def _run_fold(
     train: np.ndarray,
     validation: np.ndarray,
     test: np.ndarray,
-) -> tuple[dict, dict]:
+) -> tuple[dict, dict, np.ndarray]:
     fit_train = _training_rows(train, y, imbalance_strategy, sampling_seed)
     x_train = data.iloc[fit_train][features]
     y_train = y.iloc[fit_train]
@@ -444,7 +445,7 @@ def _run_fold(
         "validation_average_precision": float(average_precision_score(y_validation, validation_scores)),
         "train_rows_used": len(fit_train),
         "train_positives_used": int(y_train.sum()),
-    }
+    }, test_scores
 
 
 def _feature_set_default(task: int) -> str:
@@ -557,7 +558,7 @@ def main() -> None:
                     if args.task == 3:
                         raise SystemExit("O baseline history só se aplica às Tarefas 1 e 2.")
                     raise SystemExit("O baseline history requer o conjunto de features history.")
-                metrics, selection = _run_fold(
+                metrics, selection, _ = _run_fold(
                     model, features, seed, imbalance_strategy, seed + fold_index,
                     data, y, train, validation, test,
                 )
